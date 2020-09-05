@@ -1,0 +1,6 @@
+# ninja log v5
+0	635	1599306462	CMakeFiles/mesher3d.dir/main.cpp.o	d64deb296a644345
+1	860	1599306462	CMakeFiles/mesher3d.dir/mesher3d_io.cpp.o	66073f809cf3b213
+1	998	1599306462	CMakeFiles/mesher3d.dir/predicates.cxx.o	27ee27834014f77b
+1	2106	1599306463	CMakeFiles/mesher3d.dir/tetgen.cxx.o	75f03f2fff352887
+2106	2233	1599306463	mesher3d	13bb8dabefa17ea2
