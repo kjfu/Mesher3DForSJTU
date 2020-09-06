@@ -1,31 +1,31 @@
   # Part 1 - node list 
-  # node count, 3 dim, no attribute, no boundary marker
-  8  3  0  0
+  # node count, 3 dim, no attribute, with boundary marker
+  8  3  0  1
   # Node index, node coordinates
-  1  0.0 0.0 0.0
-  2  1.0 0.0 0.0
-  3  1.0 1.0 0.0
-  4  0.0 1.0 0.0
-  5  0.0 0.0 1.0
-  6  1.0 0.0 1.0
-  7  1.0 1.0 1.0
-  8  0.0 1.0 1.0
+  1  0.0 0.0 0.0 1
+  2  1.0 0.0 0.0 1
+  3  1.0 1.0 0.0 1
+  4  0.0 1.0 0.0 1
+  5  0.0 0.0 1.0 1
+  6  1.0 0.0 1.0 1
+  7  1.0 1.0 1.0 1
+  8  0.0 1.0 1.0 1
 
   # Part 2 - facet list
   # facet count, no boundary marker
-  6  0
+  6  1
   # facets
-  1            # 1 polygon, no hole, no boundary marker
+  1  0   1         # 1 polygon, no hole, with boundary marker
   4  1 2 3 4   # front
-  1
+  1  0   1
   4  5 6 7 8   # back
-  1
+  1  0   1
   4  1 2 6 5   # bottom
-  1
+  1  0   1
   4  2 3 7 6   # right
-  1
+  1  0   1
   4  3 4 8 7   # top
-  1
+  1  0   1
   4  4 1 5 8   # left
   
   # Part 3 - hole list

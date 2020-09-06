@@ -4,7 +4,9 @@
 #include "tetgen.h"
 #include <string>
 
-void loadPLCFromMESH(tetgenio *in, std::string filePath);
+
+
+void loadMESH(tetgenio *in, std::string filePath);
 
 void saveAsMESH(tetgenio *out, std::string filePath);
 
