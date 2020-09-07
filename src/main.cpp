@@ -10,8 +10,7 @@ int main(int argc, char *argv[]){
 
 
     char inFilePath[1024];
-	
-    bool getInFile = false;
+	int choice = -1;
     std::string outFilePath = "out3d.mesh";
     std::string str;
     REAL size =0;
@@ -30,14 +29,14 @@ int main(int argc, char *argv[]){
         else if (str.length()>2){
             
 			if (str.find(".poly") != std::string::npos){
-				size_t cut = str.find_last_of(".poly");
+				size_t cut = str.find(".poly");
 				strcpy(inFilePath, str.substr(0, cut).c_str());
 				in.load_poly(inFilePath);
-				getInFile = true;
+				choice = 1;
 			}
 			else if (str.find(".mesh") != std::string::npos){				
 				loadMESH(&in, str);
-				getInFile = true;
+				choice = 2;
 
 			}
         }
@@ -46,16 +45,15 @@ int main(int argc, char *argv[]){
 
 
 
-    if (!getInFile){
+    if (choice == -1){
 		fprintf(stderr, "No input file!\n");
 		exit(1);
     }
-
-	if (size > 1e-10){
+	if (choice == 1){
 			constrainedTetrahedralization(&in, &out, size);
 	}
-	else{
-		delaunayTetrahedralization(&in, &out);
+	else if (choice == 2){
+		delaunayTetrahedralization(&in, &out, size);
 	}
 	
 

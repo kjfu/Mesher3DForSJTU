@@ -1,6 +1,6 @@
 #pragma once
 #include "tetgen.h"
 
-void delaunayTetrahedralization(tetgenio *in, tetgenio *out);
+void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size);
 
 void constrainedTetrahedralization(tetgenio *in, tetgenio *out, REAL size);
