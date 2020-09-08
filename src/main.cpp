@@ -2,6 +2,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include <string>
+#include <vector>
 #include "mesher3d_io.h"
 #include "mesher3d_core.h"
 
@@ -44,21 +45,25 @@ int main(int argc, char *argv[]){
 
 
 
-
+	
     if (choice == -1){
 		fprintf(stderr, "No input file!\n");
 		exit(1);
     }
 	if (choice == 1){
-			constrainedTetrahedralization(&in, &out, size);
+			constrainedTetrahedralization(&in, &out, size);    
+			saveAsMESH(&out, outFilePath);
 	}
 	else if (choice == 2){
-		delaunayTetrahedralization(&in, &out, size);
+		std::vector<int> tetMarkers;
+		delaunayTetrahedralization(&in, &out, size, tetMarkers);
+		saveAsMESH(&out, outFilePath, tetMarkers);
+
 	}
 	
 
 	
-    saveAsMESH(&out, outFilePath);
+
 
     return 0;
 }

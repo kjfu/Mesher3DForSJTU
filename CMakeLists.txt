@@ -1,5 +1,6 @@
 # Set  the minimum  required version  of cmake  for a  project.
 cmake_minimum_required(VERSION 2.6)
+
 SET(CMAKE_C_COMPILER g++)
 add_compile_options(-std=c++14)
 

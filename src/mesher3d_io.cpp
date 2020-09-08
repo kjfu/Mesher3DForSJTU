@@ -66,3 +66,30 @@ void saveAsMESH(tetgenio *out, std::string filePath){
 
 }
 
+void saveAsMESH(tetgenio *out, std::string filePath, std::vector<int> tetMarkers){
+    std::ofstream outfile(filePath);
+    outfile << "MeshVersionFormatted 2\n";
+    outfile << "Dimension\n         3\n";
+    outfile << "Vertices\n";
+    outfile << out->numberofpoints << "\n";
+    for (int i=0; i<out->numberofpoints; i++){
+        outfile << out->pointlist[i*3]
+                << "  " << out->pointlist[i*3+1]
+                << "  " << out->pointlist[i*3+2]
+                << "  " << out->pointmarkerlist[i] << "\n";
+    }
+
+    outfile << "Tetrahedra\n";
+    outfile << out->numberoftetrahedra << "\n";
+    for (int i=0; i<out->numberoftetrahedra; i++){
+        outfile << out->tetrahedronlist[i*4]
+                << "  " << out->tetrahedronlist[i*4+1]
+                << "  " << out->tetrahedronlist[i*4+2]
+                << "  " << out->tetrahedronlist[i*4+3]
+                << "  " << tetMarkers[i] << "\n";
+    }
+
+    outfile << "End\n";
+    outfile.close();	
+}
+

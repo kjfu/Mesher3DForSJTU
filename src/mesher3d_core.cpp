@@ -4,7 +4,7 @@
 #include <map>
 #include <algorithm>
 
-void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size){
+void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vector<int> &tetMarkers){
 
 	tetgenio tmp_inside_in;
 	tetgenio tmp_inside_out;
@@ -37,6 +37,7 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size){
 		center[2] = 0;
 		tetgenContainer.numberofpoints = static_cast<int>(indexContainer.size());
 		tetgenContainer.pointlist = new REAL[tetgenContainer.numberofpoints*3];
+		tetgenContainer.pointmarkerlist = new int[tetgenContainer.numberofpoints];
 		for (int i=0; i<tetgenContainer.numberofpoints; i++){
 			tetgenContainer.pointlist[i*3+0] = in->pointlist[indexContainer[i]*3+0];
 			tetgenContainer.pointlist[i*3+1] = in->pointlist[indexContainer[i]*3+1];
@@ -44,6 +45,7 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size){
 			center[0] += tetgenContainer.pointlist[i*3+0];
 			center[1] += tetgenContainer.pointlist[i*3+1];
 			center[2] += tetgenContainer.pointlist[i*3+2];
+			tetgenContainer.pointmarkerlist[i] = in->pointmarkerlist[indexContainer[i]];
 		}
 		center[0] /= static_cast<double>(tetgenContainer.numberofpoints);
 		center[1] /= static_cast<double>(tetgenContainer.numberofpoints);
@@ -159,6 +161,7 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size){
 			tmp_shell_in.pointlist[(index)*3 + 0] = tetgenioContainer.pointlist[3*i + 0];
 			tmp_shell_in.pointlist[(index)*3 + 1] = tetgenioContainer.pointlist[3*i + 1];
 			tmp_shell_in.pointlist[(index)*3 + 2] = tetgenioContainer.pointlist[3*i + 2];
+			tmp_shell_in.pointmarkerlist[index] = tetgenioContainer.pointmarkerlist[i];
 			index++;
 		}
 		// tmp_shell_in.pointmarkerlist[index] = 1;
@@ -223,7 +226,7 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size){
 		out->pointlist[3*(i+minusPointBase) + 0] = tmp_shell_out.pointlist[3*i + 0];
 		out->pointlist[3*(i+minusPointBase) + 1] = tmp_shell_out.pointlist[3*i + 1];
 		out->pointlist[3*(i+minusPointBase) + 2] = tmp_shell_out.pointlist[3*i + 2];
-		out->pointmarkerlist[i+minusPointBase] = 0;
+		out->pointmarkerlist[i+minusPointBase] = 1;
 	}
 
 	for(int i=0; i<tmp_inside_out.numberoftetrahedra; i++){
@@ -231,6 +234,7 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size){
 		out->tetrahedronlist[4*i + 1] = tmp_inside_out.tetrahedronlist[4*i + 1]+1;
 		out->tetrahedronlist[4*i + 2] = tmp_inside_out.tetrahedronlist[4*i + 2]+1;
 		out->tetrahedronlist[4*i + 3] = tmp_inside_out.tetrahedronlist[4*i + 3]+1;
+		tetMarkers.push_back(0);
 	}
 	
 	auto updateIndex=
@@ -248,6 +252,7 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size){
 		out->tetrahedronlist[4*(tmp_inside_out.numberoftetrahedra+i) + 1]	= updateIndex(tmp_shell_out.tetrahedronlist[4*i+1]);
 		out->tetrahedronlist[4*(tmp_inside_out.numberoftetrahedra+i) + 2]	= updateIndex(tmp_shell_out.tetrahedronlist[4*i+2]);
 		out->tetrahedronlist[4*(tmp_inside_out.numberoftetrahedra+i) + 3]	= updateIndex(tmp_shell_out.tetrahedronlist[4*i+3]);
+		tetMarkers.push_back(1);
 	}
 }
 
