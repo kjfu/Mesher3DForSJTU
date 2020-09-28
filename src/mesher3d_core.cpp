@@ -237,6 +237,21 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 		tetMarkers.push_back(0);
 	}
 	
+	tetgenio final_convex_out;
+	tetgenbehavior b2;
+	char command2[] = "f";
+	b2.parse_commandline(command2);
+	tetrahedralize(&b2, &tmp_shell_out, &final_convex_out);
+	for(int i=0; i<final_convex_out.numberoftrifaces; i++){
+		if (final_convex_out.trifacemarkerlist[i]==1){
+			for(int j=0; j<3; j++){
+				out->pointmarkerlist[final_convex_out.trifacelist[3*i+j]+minusPointBase] = 2;
+			}
+		}
+	}
+
+
+
 	auto updateIndex=
 	[minusPointBase, &insideShellPointIndices]
 	(auto pointIndex){
@@ -247,6 +262,8 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 			return pointIndex+minusPointBase+1;
 		}
 	};
+
+
 	for (int i=0; i<tmp_shell_out.numberoftetrahedra; i++){
 		out->tetrahedronlist[4*(tmp_inside_out.numberoftetrahedra+i) + 0]	= updateIndex(tmp_shell_out.tetrahedronlist[4*i+0]);
 		out->tetrahedronlist[4*(tmp_inside_out.numberoftetrahedra+i) + 1]	= updateIndex(tmp_shell_out.tetrahedronlist[4*i+1]);
