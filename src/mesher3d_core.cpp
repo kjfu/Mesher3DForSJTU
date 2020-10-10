@@ -3,7 +3,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
-
+#include "mesher3d_io.h"
 void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vector<int> &tetMarkers){
 
 	tetgenio tmp_inside_in;
@@ -52,9 +52,10 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 		center[2] /= static_cast<double>(tetgenContainer.numberofpoints);
 	};
 
-	double center[3];
+	double center[3];	
 	copyPoint(tmp_outside_in, outsidePointIndices, center);
 	copyPoint(tmp_inside_in, insidePointIndices, center);
+
 
 	/**
 	 * @brief construct convex hull of points
@@ -63,7 +64,9 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 	tetgenbehavior b0;
 	char command0[] = "f";
 	b0.parse_commandline(command0);
+	fprintf(stdout, "*****Tetrahedralize inside points!\n");
 	tetrahedralize(&b0, &tmp_inside_in, &tmp_inside_out);
+	fprintf(stdout, "*****Tetrahedralize outside points!\n");
 	tetrahedralize(&b0, &tmp_outside_in, &tmp_outside_out);
 
 	/**
@@ -94,6 +97,7 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 	}
 	
 	size = size > h ? size : h;
+
 	/**
 	 * @brief Count boundary triangle facets on a convex hull
 	 * 
@@ -106,7 +110,6 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 		for(int i=0; i<tetgenContainer.numberoftrifaces; i++){
 			if (tetgenContainer.trifacemarkerlist[i]==1){
 				facetContainer.emplace_back();
-
 				for (int j=0; j<3; j++){
 					if (std::find(pointIndexContainer.begin(), pointIndexContainer.end(), tetgenContainer.trifacelist[3*i+j]) == pointIndexContainer.end()){
 					
@@ -124,10 +127,7 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 		}
 	};
 
-	/**
-	 * @brief  Build a shell with tetgenio
-	 * 
-	 */
+
 	tetgenio tmp_shell_in;
 	tetgenio tmp_shell_out;
 	std::vector<int> outsideShellPointIndices;
@@ -136,8 +136,65 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 	std::vector<std::vector<int>> insideFacets;
 
 
-	travelBoundaryTriangleFacets(tmp_inside_out, insideShellPointIndices, insideFacets);
+
 	travelBoundaryTriangleFacets(tmp_outside_out, outsideShellPointIndices, outsideFacets);
+
+	/**
+	 * @brief  Refine outside mesh
+	 * 
+	 */
+
+	tetgenio tmp_outside_refine_in;
+	tetgenio tmp_outside_refine_out;
+	tmp_outside_refine_in.numberoffacets = outsideFacets.size();
+	tmp_outside_refine_in.facetlist = new tetgenio::facet[tmp_outside_refine_in.numberoffacets];
+	tmp_outside_refine_in.numberofholes = 0;
+	tmp_outside_refine_in.facetmarkerlist = new int[tmp_outside_refine_in.numberoffacets];
+	for(int i=0; i<tmp_outside_refine_in.numberoffacets; i++){
+		tmp_outside_refine_in.facetmarkerlist[i]=1;
+		tetgenio::facet &f = tmp_outside_refine_in.facetlist[i];		
+		f.numberofpolygons = 1;
+		f.polygonlist = new tetgenio::polygon[f.numberofpolygons];
+		f.numberofholes = 0;
+		f.holelist = NULL;
+		tetgenio::polygon &p = f.polygonlist[0];
+		p.numberofvertices = 3;
+		p.vertexlist = new int[p.numberofvertices];
+		p.vertexlist[0] = outsideFacets[i][0];
+		p.vertexlist[1] = outsideFacets[i][1];
+		p.vertexlist[2] = outsideFacets[i][2];	
+
+	}
+	tmp_outside_refine_in.numberofpoints = outsideShellPointIndices.size();
+	tmp_outside_refine_in.pointlist = new REAL[3*tmp_outside_refine_in.numberofpoints];		
+	tmp_outside_refine_in.pointmarkerlist = new int[tmp_outside_refine_in.numberofpoints];
+	auto index = 0;		
+	for(auto i: outsideShellPointIndices){
+		tmp_outside_refine_in.pointlist[(index)*3 + 0] = tmp_outside_out.pointlist[3*i + 0];
+		tmp_outside_refine_in.pointlist[(index)*3 + 1] = tmp_outside_out.pointlist[3*i + 1];
+		tmp_outside_refine_in.pointlist[(index)*3 + 2] = tmp_outside_out.pointlist[3*i + 2];
+		tmp_outside_refine_in.pointmarkerlist[index] = tmp_outside_out.pointmarkerlist[i];
+		index++;
+	}
+
+	tmp_outside_refine_in.numberofpointmtrs = 1;
+	tmp_outside_refine_in.pointmtrlist = new REAL[tmp_outside_refine_in.numberofpoints];
+	for (int i=0; i<tmp_outside_refine_in.numberofpoints; i++){
+		tmp_outside_refine_in.pointmtrlist[i] = size;
+	}
+	tetgenbehavior b0_refine;
+	char command_refine[] = "pqmDf";
+	b0_refine.parse_commandline(command_refine);
+	fprintf(stdout, "*****Refine outside!\n");
+	tetrahedralize(&b0_refine, &tmp_outside_refine_in, &tmp_outside_refine_out);
+	/**
+	 * @brief  Build a shell with tetgenio
+	 * 
+	 */
+	outsideShellPointIndices.clear();
+	outsideFacets.clear();
+	travelBoundaryTriangleFacets(tmp_inside_out, insideShellPointIndices, insideFacets);
+	travelBoundaryTriangleFacets(tmp_outside_refine_out, outsideShellPointIndices, outsideFacets);
 	
 	tmp_shell_in.numberofpoints = insideShellPointIndices.size() + outsideShellPointIndices.size();
 	tmp_shell_in.pointlist = new REAL[tmp_shell_in.numberofpoints*3];
@@ -167,7 +224,7 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 		// tmp_shell_in.pointmarkerlist[index] = 1;
 	};
 	addPoints(tmp_inside_out, insideShellPointIndices, 0);
-	addPoints(tmp_outside_out, outsideShellPointIndices, insideShellPointIndices.size());
+	addPoints(tmp_outside_refine_out, outsideShellPointIndices, insideShellPointIndices.size());
 
 
 
@@ -189,7 +246,7 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 		}
 	};
 	addTriangleFacet(tmp_inside_out, insideFacets, 0, 0);
-	addTriangleFacet(tmp_outside_out, outsideFacets, insideFacets.size(), insideShellPointIndices.size());
+	addTriangleFacet(tmp_outside_refine_out, outsideFacets, insideFacets.size(), insideShellPointIndices.size());
 
 
 	tmp_shell_in.numberofpointmtrs = 1;
@@ -203,8 +260,9 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 	}
 	
 	tetgenbehavior b1;
-	char command1[] = "pqmD";
+	char command1[] = "pqmY";
 	b1.parse_commandline(command1);
+	fprintf(stdout, "*****Tetrahedralize shell!\n");
 	tetrahedralize(&b1, &tmp_shell_in, &tmp_shell_out);
 	out->firstnumber = 1;
 	out->numberoftetrahedra = tmp_shell_out.numberoftetrahedra + tmp_inside_out.numberoftetrahedra;
@@ -241,6 +299,8 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 	tetgenbehavior b2;
 	char command2[] = "f";
 	b2.parse_commandline(command2);
+	printf("asdadasdasdads %d\n", tmp_shell_out.numberofpoints);
+	fprintf(stdout, "*****Tetrahedralize all points!\n");
 	tetrahedralize(&b2, &tmp_shell_out, &final_convex_out);
 	for(int i=0; i<final_convex_out.numberoftrifaces; i++){
 		if (final_convex_out.trifacemarkerlist[i]==1){
@@ -264,13 +324,24 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 	};
 
 
+
 	for (int i=0; i<tmp_shell_out.numberoftetrahedra; i++){
 		out->tetrahedronlist[4*(tmp_inside_out.numberoftetrahedra+i) + 0]	= updateIndex(tmp_shell_out.tetrahedronlist[4*i+0]);
 		out->tetrahedronlist[4*(tmp_inside_out.numberoftetrahedra+i) + 1]	= updateIndex(tmp_shell_out.tetrahedronlist[4*i+1]);
 		out->tetrahedronlist[4*(tmp_inside_out.numberoftetrahedra+i) + 2]	= updateIndex(tmp_shell_out.tetrahedronlist[4*i+2]);
 		out->tetrahedronlist[4*(tmp_inside_out.numberoftetrahedra+i) + 3]	= updateIndex(tmp_shell_out.tetrahedronlist[4*i+3]);
 		tetMarkers.push_back(1);
-	}
+	}	
+	
+	// int sumsum=0;
+	// int queryIndex= 1;
+	// for (int i=0; i<out->numberoftetrahedra; i++){
+	// 	if (out->tetrahedronlist[4*i+0]==queryIndex || out->tetrahedronlist[4*i+1]==queryIndex  || out->tetrahedronlist[4*i+2]==queryIndex || out->tetrahedronlist[4*i+3]==queryIndex){
+	// 		fprintf(stdout, "***%d  %d  %d  %d\n", out->tetrahedronlist[4*i+0], out->tetrahedronlist[4*i+1], out->tetrahedronlist[4*i+2], out->tetrahedronlist[4*i+3]);
+	// 		sumsum++;
+	// 	}
+	// }
+	// fprintf(stdout, "********************* %d\n", sumsum);
 }
 
 
