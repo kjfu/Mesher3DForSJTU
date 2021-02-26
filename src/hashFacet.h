@@ -6,7 +6,7 @@
 
 class HashFacetTable{
 public:
-    std::unordered_map<int, std::vector<TriangleFacet>> columns;
+    std::unordered_map<int, std::vector<TriangleFacet> > columns;
 
     HashFacetTable(){}
     void insert(TriangleFacet aFacet);

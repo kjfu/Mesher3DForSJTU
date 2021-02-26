@@ -495,7 +495,7 @@ void Mesh::checkBooleanRemove(Mesh &anotherMesh, int outerLayers){
         }
         for(auto e: removeTets){
                 for(auto n: e->nodes){
-                    n->edit == -1;
+                    n->edit = -1;
                 }
         }
 
@@ -516,7 +516,7 @@ void Mesh::checkBooleanRemove(Mesh &anotherMesh, int outerLayers){
 
             for(auto e: freshTets){
                 for(auto n: e->nodes){
-                    n->edit == -1;
+                    n->edit = -1;
                 }
             }
 
