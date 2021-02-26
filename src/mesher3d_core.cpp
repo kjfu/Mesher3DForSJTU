@@ -499,6 +499,10 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead){
 		}
 		std::vector<Node *>mergeNodes1;
 		goalMesh.mergeMesh(tmpMesh, mergeNodes1);
+
+		for(auto n: mergeNodes1){
+			n->label = 0;
+		}
 		std::vector<Node *> nodes;
 		extractBorderNodes(goalMesh.tetrahedrons, nodes);
 		for(auto n: nodes){
