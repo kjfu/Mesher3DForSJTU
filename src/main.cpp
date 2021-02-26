@@ -26,7 +26,7 @@ int main(int argc, char *argv[]){
 
 	std::string refineFileHeadIn;
     std::string refineFileHeadOut;
-
+	bool quiet = false;
 	for(int i=1; i<argc; i++){
         str = std::string(argv[i]);
 
@@ -34,6 +34,9 @@ int main(int argc, char *argv[]){
             i++;
             size = atof(argv[i]);
         }
+		else if(str=="-q"){
+			quiet = true;
+		}
         else if (str == "-o"){
             i++;
             outFilePath = std::string(argv[i]);
@@ -75,16 +78,16 @@ int main(int argc, char *argv[]){
 		exit(1);
     }
 	if (choice == 1){
-			constrainedTetrahedralization(&in, &out, size);    
+			constrainedTetrahedralization(&in, &out, size, quiet);    
 			saveAsMESH(&out, outFilePath);
 	}
 	else if (choice == 2){
 		std::vector<int> tetMarkers;
-		delaunayTetrahedralization(&in, &out, size, tetMarkers);
+		delaunayTetrahedralization(&in, &out, size, tetMarkers, quiet);
 		saveAsMESH(&out, outFilePath, tetMarkers);
 	}
 	else if (choice == 3){
-		refineMesh(refineFileHeadIn, refineFileHeadOut);
+		refineMesh(refineFileHeadIn, refineFileHeadOut, quiet);
 	}
 	
     return 0;

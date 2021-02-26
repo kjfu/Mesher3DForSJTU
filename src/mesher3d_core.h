@@ -7,11 +7,11 @@
 
 
 
-void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vector<int> &tetMarkers);
+void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vector<int> &tetMarkers, bool beQuiet=false);
 
-void constrainedTetrahedralization(tetgenio *in, tetgenio *out, REAL size);
+void constrainedTetrahedralization(tetgenio *in, tetgenio *out, REAL size, bool beQuiet=false);
 
 
-void refineMesh(const std::string &fileInHead, const std::string &fileOutHead);
+void refineMesh(const std::string &fileInHead, const std::string &fileOutHead, bool beQuiet=false);
 
 

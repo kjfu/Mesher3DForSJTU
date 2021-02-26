@@ -10,7 +10,7 @@
 
 
 
-void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vector<int> &tetMarkers){
+void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vector<int> &tetMarkers, bool beQuiet){
 
 	tetgenio tmp_inside_in;
 	tetgenio tmp_inside_out;
@@ -68,8 +68,15 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 	 * 
 	 */
 	tetgenbehavior b0;
-	char command0[] = "f";
-	b0.parse_commandline(command0);
+	if(beQuiet){
+		char command0[] = "fQ";
+		b0.parse_commandline(command0);
+	}
+	else{
+		char command0[] = "f";
+		b0.parse_commandline(command0);
+	}
+
 	fprintf(stdout, "*****Tetrahedralize inside points!\n");
 	tetrahedralize(&b0, &tmp_inside_in, &tmp_inside_out);
 	fprintf(stdout, "*****Tetrahedralize outside points!\n");
@@ -189,8 +196,15 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 		tmp_outside_refine_in.pointmtrlist[i] = size;
 	}
 	tetgenbehavior b0_refine;
-	char command_refine[] = "pqmDf";
-	b0_refine.parse_commandline(command_refine);
+	if(beQuiet){
+		char command_refine[] = "pqmDfQ";
+		b0_refine.parse_commandline(command_refine);		
+	}
+	else{
+		char command_refine[] = "pqmDf";
+		b0_refine.parse_commandline(command_refine);	
+	}
+
 	fprintf(stdout, "*****Refine outside!\n");
 	tetrahedralize(&b0_refine, &tmp_outside_refine_in, &tmp_outside_refine_out);
 	/**
@@ -266,8 +280,15 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 	}
 	
 	tetgenbehavior b1;
-	char command1[] = "pqmY";
-	b1.parse_commandline(command1);
+	if (beQuiet){
+		char command1[] = "pqmYQ";
+		b1.parse_commandline(command1);
+	}
+	else{
+		char command1[] = "pqmY";
+		b1.parse_commandline(command1);
+	}
+
 	fprintf(stdout, "*****Tetrahedralize shell!\n");
 	tetrahedralize(&b1, &tmp_shell_in, &tmp_shell_out);
 	out->firstnumber = 1;
@@ -303,8 +324,15 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 	
 	tetgenio final_convex_out;
 	tetgenbehavior b2;
-	char command2[] = "f";
-	b2.parse_commandline(command2);
+	if (beQuiet){
+		char command2[] = "fQ";
+		b2.parse_commandline(command2);
+	}
+	else{
+		char command2[] = "f";
+		b2.parse_commandline(command2);		
+	}
+
 	//printf("asdadasdasdads %d\n", tmp_shell_out.numberofpoints);
 	fprintf(stdout, "*****Tetrahedralize all points!\n");
 	tetrahedralize(&b2, &tmp_shell_out, &final_convex_out);
@@ -355,7 +383,7 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 
 
 
-void constrainedTetrahedralization(tetgenio *in, tetgenio *out, REAL size){
+void constrainedTetrahedralization(tetgenio *in, tetgenio *out, REAL size, bool beQuiet){
 	in->numberofpointmtrs = 1;
     in->pointmtrlist = new REAL[in->numberofpoints];
     for(int i=0; i<in->numberofpoints; i++){
@@ -364,14 +392,20 @@ void constrainedTetrahedralization(tetgenio *in, tetgenio *out, REAL size){
     }
 
 	tetgenbehavior b;
-	
-	char command[] = "pqmD";
-	b.parse_commandline(command);
+	if(beQuiet){
+		char command[] = "pqmDQ";
+		b.parse_commandline(command);		
+	}
+	else{
+		char command[] = "pqmD";
+		b.parse_commandline(command);			
+	}
+
     tetrahedralize(&b, in, out);
 
 }
 
-void refineMesh(const std::string &fileInHead, const std::string &fileOutHead){
+void refineMesh(const std::string &fileInHead, const std::string &fileOutHead, bool beQuiet){
 		Mesh goalMesh;
 		Mesh backgroundMesh;
 		double timebegin, timeend;
@@ -381,7 +415,7 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead){
 		loadREMESH(refine_elements, append_points, fileInHead+".remesh");		
 		backgroundMesh.clone(goalMesh);
 		backgroundMesh.loadNodeValues(fileInHead+".value");	
-		std::cout << "[*************] Input nodes: "<<goalMesh.nodes.size() << "; input tets: "<< goalMesh.tetrahedrons.size() << std::endl;
+		// std::cout << "[*************] Input nodes: "<<goalMesh.nodes.size() << "; input tets: "<< goalMesh.tetrahedrons.size() << std::endl;
 		std::vector<Vector3D> positions;
 		for(auto nt:refine_elements){
 			Vector3D vec = goalMesh.tetrahedrons[nt-1]->center();
@@ -390,8 +424,8 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead){
 		timebegin = clock_t();
 		goalMesh.CavityBasedInsert(positions);
 		timeend = clock_t();
-		std::cout << "[*************] Refine time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
-		std::cout << "[*************] After refine, nodes: "<<goalMesh.nodes.size() << "; tets: "<< goalMesh.tetrahedrons.size() << std::endl;		
+		std::cout << "[*************] Insert time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
+		// std::cout << "[*************] After insert, nodes: "<<goalMesh.nodes.size() << "; tets: "<< goalMesh.tetrahedrons.size() << std::endl;		
 
 
 
@@ -438,8 +472,15 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead){
 		std::vector<TriangleFacet> grad_facets; 
 
 		transportNodesToTETGENIO(tmpMesh.nodes, tmpin);
-		char cmd[]="f";
-		tetrahedralize(cmd, &tmpin, &tmpout);
+		if(beQuiet){
+			char cmd[]="fQ";
+			tetrahedralize(cmd, &tmpin, &tmpout);			
+		}
+		else{
+			char cmd[]="f";
+			tetrahedralize(cmd, &tmpin, &tmpout);			
+		}
+
 		instructTetrahedronConnectByTETGENIO(tmpMesh.nodes, tmpout, tmpMesh.tetrahedrons);
 		tmpMesh.rebuildIndices();
 		tmpMesh.estimateSizing();
@@ -457,9 +498,9 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead){
 		goalMesh.checkBooleanRemove(tmpMesh);
 		timeend = clock();
 
-		std::cout << "\n";
-		std::cout <<"[*************]  Boolean remove time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
-		std::cout << "\n";
+
+		std::cout <<"[*************] Boolean remove time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
+
 
 		std::vector<Tetrahedron *> rmTets;
 		for(auto e: goalMesh.tetrahedrons){
@@ -476,12 +517,19 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead){
 		holes.emplace_back(0,0,0);
 		tetgenio grad_in, grad_out;
 		transportFacetsToTETGENIO(grad_nodes, grad_facets, holes, grad_in);
-		char cmd0[]="pqmY";
-		tetrahedralize(cmd0, &grad_in, &grad_out);
+		if (beQuiet){
+			char cmd0[]="pqmYQ";
+			tetrahedralize(cmd0, &grad_in, &grad_out);
+		}
+		else{
+			char cmd0[]="pqmY";
+			tetrahedralize(cmd0, &grad_in, &grad_out);	
+		}
+
 		gradMesh.loadTETGENIO(grad_out);
 
 		std::vector<Node *>mergeNodes0;
-		std::cout << "[*************] Start merge!\n";
+		// std::cout << "[*************] Start merge!\n";
 		goalMesh.mergeMesh(gradMesh, mergeNodes0);
 		for(auto n:goalMesh.nodes){
 			n->label = 1;
@@ -508,7 +556,7 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead){
 		for(auto n: nodes){
 			n->label = 2;
 		}
-		std::cout << "[*************] Finish merge!\n";
+		// std::cout << "[*************] Finish merge!\n";
 		timebegin= clock();
 		backgroundMesh.interpolateNodeValuesForAnotherMesh(goalMesh);
 		timeend = clock();

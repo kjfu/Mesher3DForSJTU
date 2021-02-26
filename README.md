@@ -21,3 +21,9 @@ You must keep 3 files in same path, *.mesh, *.remesh, *.value
 >>mesher3d -r test3d
 ````
 the chars after "-r" with no postfix
+## 4. Quiet the mesh generation detials
+
+```
+>>mesher3d -r test3d -q
+````
+-q quiet mesh generation detials
