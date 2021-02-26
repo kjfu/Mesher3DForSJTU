@@ -4,6 +4,12 @@
 #include <map>
 #include <algorithm>
 #include "mesher3d_io.h"
+#include <iostream>
+#include <ctime>
+#include "mesh.h"
+
+
+
 void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vector<int> &tetMarkers){
 
 	tetgenio tmp_inside_in;
@@ -299,7 +305,7 @@ void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vec
 	tetgenbehavior b2;
 	char command2[] = "f";
 	b2.parse_commandline(command2);
-	printf("asdadasdasdads %d\n", tmp_shell_out.numberofpoints);
+	//printf("asdadasdasdads %d\n", tmp_shell_out.numberofpoints);
 	fprintf(stdout, "*****Tetrahedralize all points!\n");
 	tetrahedralize(&b2, &tmp_shell_out, &final_convex_out);
 	for(int i=0; i<final_convex_out.numberoftrifaces; i++){
@@ -363,4 +369,148 @@ void constrainedTetrahedralization(tetgenio *in, tetgenio *out, REAL size){
 	b.parse_commandline(command);
     tetrahedralize(&b, in, out);
 
+}
+
+void refineMesh(const std::string &fileInHead, const std::string &fileOutHead){
+		Mesh goalMesh;
+		Mesh backgroundMesh;
+		double timebegin, timeend;
+		std::vector<int> refine_elements;
+		std::vector<std::array<double,3>> append_points;
+		goalMesh.loadMESH(fileInHead+".mesh");		
+		loadREMESH(refine_elements, append_points, fileInHead+".remesh");		
+		backgroundMesh.clone(goalMesh);
+		backgroundMesh.loadNodeValues(fileInHead+".value");	
+		std::cout << "[*************] Input nodes: "<<goalMesh.nodes.size() << "; input tets: "<< goalMesh.tetrahedrons.size() << std::endl;
+		std::vector<Vector3D> positions;
+		for(auto nt:refine_elements){
+			Vector3D vec = goalMesh.tetrahedrons[nt-1]->center();
+			positions.push_back(vec);
+		}
+		timebegin = clock_t();
+		goalMesh.CavityBasedInsert(positions);
+		timeend = clock_t();
+		std::cout << "[*************] Refine time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
+		std::cout << "[*************] After refine, nodes: "<<goalMesh.nodes.size() << "; tets: "<< goalMesh.tetrahedrons.size() << std::endl;		
+
+
+
+
+
+
+		goalMesh.estimateSizing();
+		std::vector<Tetrahedron *> tetsToRemove;
+		std::vector<Node *> sNodes;
+		for (auto &e: goalMesh.tetrahedrons){
+			bool removeOut = true;
+			for(auto n: e->nodes){
+				if (n->label!=0){
+					removeOut = false;
+					break;
+				}
+
+			}
+			if (removeOut){
+				tetsToRemove.push_back(e);
+			}
+		}
+
+		Mesh tmpMesh;
+		for (auto n: goalMesh.nodes){
+			if (n->label==0){
+				Node *node = new Node(*n);
+				tmpMesh.nodes.push_back(node);
+			}
+		}
+
+		for(auto p:append_points){
+			Node *node = new Node(p.data());
+			tmpMesh.nodes.push_back(node);
+		}
+
+
+
+
+		tetgenio tmpout;
+		tetgenio tmpin;
+		Mesh gradMesh;
+		std::vector<Node *> grad_nodes;
+		std::vector<TriangleFacet> grad_facets; 
+
+		transportNodesToTETGENIO(tmpMesh.nodes, tmpin);
+		char cmd[]="f";
+		tetrahedralize(cmd, &tmpin, &tmpout);
+		instructTetrahedronConnectByTETGENIO(tmpMesh.nodes, tmpout, tmpMesh.tetrahedrons);
+		tmpMesh.rebuildIndices();
+		tmpMesh.estimateSizing();
+		tmpMesh.extractBorder(grad_nodes, grad_facets);
+		Vector3D hole;
+		for(auto n: grad_nodes){
+			hole+=n->pos;
+		}
+		hole/=grad_nodes.size();
+
+
+
+		tmpMesh.readyForSpatialSearch();
+		timebegin= clock();
+		goalMesh.checkBooleanRemove(tmpMesh);
+		timeend = clock();
+
+		std::cout << "\n";
+		std::cout <<"[*************]  Boolean remove time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
+		std::cout << "\n";
+
+		std::vector<Tetrahedron *> rmTets;
+		for(auto e: goalMesh.tetrahedrons){
+			if(e->edit==-1){
+				rmTets.push_back(e);
+			}
+		}
+		extratctBorder(rmTets, grad_nodes, grad_facets);
+
+
+		goalMesh.deleteLargeScaleTetrahedronsPermanently(rmTets);
+		
+		std::vector<Vector3D> holes;
+		holes.emplace_back(0,0,0);
+		tetgenio grad_in, grad_out;
+		transportFacetsToTETGENIO(grad_nodes, grad_facets, holes, grad_in);
+		char cmd0[]="pqmY";
+		tetrahedralize(cmd0, &grad_in, &grad_out);
+		gradMesh.loadTETGENIO(grad_out);
+
+		std::vector<Node *>mergeNodes0;
+		std::cout << "[*************] Start merge!\n";
+		goalMesh.mergeMesh(gradMesh, mergeNodes0);
+		for(auto n:goalMesh.nodes){
+			n->label = 1;
+		}
+		for(auto e:goalMesh.tetrahedrons){
+			e->label = 1;
+		}
+
+
+		for(auto n: tmpMesh.nodes){
+			n->label = 0;
+		}
+		for(auto e:tmpMesh.tetrahedrons){
+			e->label = 0;
+		}
+		std::vector<Node *>mergeNodes1;
+		goalMesh.mergeMesh(tmpMesh, mergeNodes1);
+		std::vector<Node *> nodes;
+		extractBorderNodes(goalMesh.tetrahedrons, nodes);
+		for(auto n: nodes){
+			n->label = 2;
+		}
+		std::cout << "[*************] Finish merge!\n";
+		timebegin= clock();
+		backgroundMesh.interpolateNodeValuesForAnotherMesh(goalMesh);
+		timeend = clock();
+		std::cout <<"[*************] Interpolation time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
+
+		goalMesh.exportNodeValues(fileOutHead+".value");
+		goalMesh.exportMESH(fileOutHead+".mesh");
+		std::cout << "Finish Adaption!\n";
 }

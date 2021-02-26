@@ -14,3 +14,10 @@
 ```
 -s sizing: to set the maximum scalar sizing of the mesh(equals to the maximum edge length, regardless the points with marker 0)  
 -o filename: to set the name of the output *.mesh file
+
+## 3. To remesh a 3d mesh adaptively
+You must keep 3 files in same path, *.mesh, *.remesh, *.value
+```
+>>mesher3d -r test3d
+````
+the chars after "-r" with no postfix

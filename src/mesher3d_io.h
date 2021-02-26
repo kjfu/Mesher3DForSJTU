@@ -4,14 +4,20 @@
 #include "tetgen.h"
 #include <string>
 #include <vector>
+#include <array>
+#include "vector3d.h"
 
 
-void loadMESH(tetgenio *in, std::string filePath);
+
+
+void loadMesh(tetgenio *in, std::string filePath);
+
+
+void loadREMESH(std::vector<int> &elements, std::vector<std::array<double,3>> &points, std::string filePath);
 
 void saveAsMESH(tetgenio *out, std::string filePath);
 
 void saveAsMESH(tetgenio *out, std::string filePath, std::vector<int> tetMarkers);
-
 
 
 #endif

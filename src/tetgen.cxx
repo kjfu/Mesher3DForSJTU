@@ -29453,7 +29453,7 @@ void tetgenmesh::statistics()
       printf("  Steiner points on input segments:  %ld\n", st_segref_count);
     }
     if (st_volref_count > 0l) {
-      printf("  Steiner points inside domain: %ld\n", st_volref_count);
+      printf("  Steiner points inside domain: %ld\n", st_volref_count); 
     }
   } else {
     printf("  Convex hull faces: %ld\n", hullsize);
@@ -32178,7 +32178,6 @@ void tetrahedralize(tetgenbehavior *b, tetgenio *in, tetgenio *out,
         m.outsubfaces(out);
       }
 
-      return;
     }
   }
 
@@ -32444,7 +32443,7 @@ void tetrahedralize(tetgenbehavior *b, tetgenio *in, tetgenio *out,
 
   if (!b->quiet) {
     m.statistics();
-  }
+  } 
 }
 
 #ifndef TETLIBRARY
