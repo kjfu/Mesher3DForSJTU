@@ -531,12 +531,42 @@ void Mesh::checkBooleanRemove(Mesh &anotherMesh, int outerLayers){
 void Mesh::loadNodeValues(const std::string &filePath){
     std::ifstream file(filePath);
     if (file.is_open()){
-        for(int i=0; i<nodes.size(); i++){
+        while(file){
             std::string line;
             std::getline(file, line);
             std::stringstream lineStream(line);
-            lineStream >> nodes[i]->value; 
+            std::string keyString;
+            lineStream >> keyString;
+            if(keyString == "scalar"){
+                std::string name;
+                lineStream >> name;
+                scalarValueNames.push_back(name);
+                for(int i=0; i<nodes.size(); i++){
+                    std::string line;
+                    std::getline(file, line);
+                    std::stringstream lineStream(line);
+                    double value;
+                    lineStream >> value;
+                    nodes[i]->scalarValues.push_back(value); 
+                }                
+            }
+            else if (keyString == "vector"){
+                std::string name;
+                lineStream >> name;
+                vectorValueNames.push_back(name);
+                for(int i=0; i<nodes.size(); i++){
+                    std::string line;
+                    std::getline(file, line);
+                    std::stringstream lineStream(line);
+                    double u, v, w;
+                    lineStream >> u >> v>> w;
+                    Vector3D vec(u, v, w);
+                    nodes[i]->vectorValues.push_back(vec); 
+                }    
+            }
+            
         }
+
         file.close();
     }
 }
@@ -897,8 +927,18 @@ void Mesh::estimateSizing(){
 
 void Mesh::exportNodeValues(const std::string &filePath){
     std::ofstream file(filePath);
-    for (auto n: nodes){
-        file << n->value << std::endl;
+    for(int i=0; i<scalarValueNames.size(); i++){
+        file << "scalar " << scalarValueNames[i] << std::endl;    
+        for (auto n: nodes){
+            file << n->scalarValues[i] << std::endl;
+        }
+    }
+
+    for(int i=0; i<vectorValueNames.size(); i++){
+        file << "vector " << vectorValueNames[i] << std::endl;    
+        for (auto n: nodes){
+        file << n->vectorValues[i][0] << "  "<<n->vectorValues[i][1] << "  " << n->vectorValues[i][2] << std::endl;
+        }
     }
     file.close();
 }
@@ -907,12 +947,15 @@ void Mesh::exportNodeValues(const std::string &filePath){
 void Mesh::interpolateNodeValuesForAnotherMesh(Mesh &anotherMesh){
     estimateSizing();
     readyForSpatialSearch(true);
+    anotherMesh.scalarValueNames = this->scalarValueNames;
+    anotherMesh.vectorValueNames = this->vectorValueNames;
     for(auto n: anotherMesh.nodes){
         kdres *set = kd_nearest_range(nodeKDTree, n->pos.data(), 1e-10);
         if (kd_res_size(set)){
             double pos[3];
             Node *goalNode = static_cast<Node*>(kd_res_item_data(set));
-            n->value = goalNode->value;
+            n->vectorValues = goalNode->vectorValues;
+            n->scalarValues = goalNode->scalarValues;
             n->edit = 0;
             kd_res_free(set);
             continue;
@@ -923,7 +966,11 @@ void Mesh::interpolateNodeValuesForAnotherMesh(Mesh &anotherMesh){
         Tetrahedron *goalTet;
         std::array<double, 4> weights;
         if (searchTetrahedronContain(n->pos, goalTet, weights)){
-            n->value = goalTet->interpolateNodeValue(weights);
+            std::vector<double> scalars;
+            std::vector<Vector3D> vecs;
+            goalTet->interpolateNodeValue(weights, scalars, vecs);
+            n->scalarValues = scalars;
+            n->vectorValues = vecs;
             n->edit=0;
         }
         else{

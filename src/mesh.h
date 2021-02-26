@@ -23,7 +23,8 @@ struct Node
     int label;
     bool fixed = false;
     double sizing;
-    double value =-1;
+    std::vector<double> scalarValues;
+    std::vector<Vector3D> vectorValues;
     int edit = 0;
 
     void *tempDate = nullptr;
@@ -202,26 +203,62 @@ public:
     bool isValid(){
         return (SixTimesTetrahedronVolume(nodes[0]->pos, nodes[1]->pos, nodes[2]->pos, nodes[3]->pos)>0);
     }
-    double interpolateNodeValue(Vector3D pos){
+
+    void interpolateNodeValue(Vector3D pos, std::vector<double> &scalars, std::vector<Vector3D> &vectors){
 
         double v0 = SixTimesTetrahedronVolume(nodes[1]->pos, nodes[3]->pos, nodes[2]->pos, pos);
         double v1 = SixTimesTetrahedronVolume(nodes[0]->pos, nodes[2]->pos, nodes[3]->pos, pos);
         double v2 = SixTimesTetrahedronVolume(nodes[0]->pos, nodes[3]->pos, nodes[1]->pos, pos);
         double v3 = SixTimesTetrahedronVolume(nodes[0]->pos, nodes[1]->pos, nodes[2]->pos, pos);
         double v= v0 + v1 + v2 + v3;
-        double rst = v0/v * nodes[0]->value + v1/v*nodes[1]->value + v2/v*nodes[2]->value + v3/v*nodes[3]->value;
-        return rst;
+        std::array<double, 4> weights{{v0/v, v1/v, v2/v, v3/v}};
+        int numScalars = nodes[0]->scalarValues.size();
+        int numVectors = nodes[0]->vectorValues.size();
+        for(int i=0; i<numScalars; i++){
+            double value =0;
+            for(int j=0; j<4; j++){
+                value += weights[j] * nodes[i]->scalarValues[j];
+            }
+            scalars.push_back(value);
+        }
+
+        for(int i=0; i<numVectors; i++){
+            Vector3D vec(0.0);
+            for(int j=0; j<4; j++){
+                vec += weights[j] * nodes[i]->vectorValues[j];
+            }
+            vectors.push_back(vec);
+        }
+
     }
 
-    double interpolateNodeValue(std::array<double, 4> &weights){
-        double rst = 0;
+    void interpolateNodeValue(std::array<double, 4> &sWeights, std::vector<double> &scalars, std::vector<Vector3D> &vectors){
+        std::array<double, 4> weights = sWeights;
         double sumWeights = 0;
-        for(int i=0; i<4; i++){
-            rst += weights[i]*nodes[i]->value;
-            sumWeights += weights[i];
+        for(auto w: weights){
+            sumWeights += w;
         }
-        rst /= sumWeights;
-        return rst;
+        for(auto &w: weights){
+            w /= sumWeights;
+        }
+
+        int numScalars = nodes[0]->scalarValues.size();
+        int numVectors = nodes[0]->vectorValues.size();
+        for(int i=0; i<numScalars; i++){
+            double value =0;
+            for(int j=0; j<4; j++){
+                value += weights[j] * nodes[i]->scalarValues[j];
+            }
+            scalars.push_back(value);
+        }
+
+        for(int i=0; i<numVectors; i++){
+            Vector3D vec(0.0);
+            for(int j=0; j<4; j++){
+                vec += weights[j] * nodes[i]->vectorValues[j];
+            }
+            vectors.push_back(vec);
+        }
     }
 
     void generateBoundingBox(){
@@ -243,6 +280,8 @@ public:
 
 class Mesh{
 public:
+    std::vector<std::string> scalarValueNames;
+    std::vector<std::string> vectorValueNames;
     std::vector<Node *> nodes;
     std::vector<Tetrahedron *> tetrahedrons;
     // RTree<Tetrahedron*, double, 3, double, 10000> tetRTree;

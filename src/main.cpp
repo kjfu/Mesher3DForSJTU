@@ -14,6 +14,16 @@
 #include <ctime>
 #include <unordered_map>
 int main(int argc, char *argv[]){
+	// std::ofstream f("/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d.value");
+	// f << "vector displacement\n";
+	// for(int i=0 ;i<6117; i++){
+	// 	f << rand()%100 << "  " << rand()%100 << "  " << rand()%10 << std::endl;
+	// }
+	// f << "scalar density\n";
+	// for(int i=0 ;i<6117; i++){
+	// 	f << rand()%100 << std::endl;
+	// }
+	// return 0;
     tetgenio in, out;
 	Mesh goalMesh;
 	Mesh backgroundMesh;
