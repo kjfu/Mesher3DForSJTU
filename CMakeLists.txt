@@ -1,6 +1,7 @@
 # Set  the minimum  required version  of cmake  for a  project.
 cmake_minimum_required(VERSION 3.10)
 
+project(mesher3d)
 # SET(CMAKE_C_COMPILER gcc-10)
 # add_compile_options(-std=c++14 -fpermissive)
 

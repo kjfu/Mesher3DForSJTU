@@ -2,6 +2,8 @@
 #define _MESHER3D_IO_
 
 #include "tetgen.h"
+#include "triangle.h"
+
 #include <string>
 #include <vector>
 #include <array>
@@ -18,6 +20,10 @@ void loadREMESH(std::vector<int> &elements, std::vector<std::array<double,3>> &p
 void saveAsMESH(tetgenio *out, std::string filePath);
 
 void saveAsMESH(tetgenio *out, std::string filePath, std::vector<int> tetMarkers);
+
+void loadNodesWithLabel(tetgenio &tetIn, std::string filePath, Vector3D &max, Vector3D &min, Vector3D &omax, Vector3D &omin, std::vector<int> &indexOf1);
+void loadNodesWithLabel(tetgenio &tetIn, std::string filePath, Vector3D &max, Vector3D &min, Vector3D &omax, Vector3D &omin);
+
 
 
 #endif

@@ -63,9 +63,9 @@ public:
         minimum.fill(std::numeric_limits<double>::max());        
     }
 
-    bool contain(Vector3D pos){
+    bool contain(Vector3D pos, double epsilon = std::numeric_limits<double>::epsilon()){
         for(int i=0; i<3; i++){
-            if(pos[i]>(maximum[i]+std::numeric_limits<double>::epsilon()) || (pos[i]<minimum[i]-std::numeric_limits<double>::epsilon())){
+            if(pos[i]>(maximum[i]+epsilon) || (pos[i]<minimum[i]-epsilon)){
                 return false;
             }
         }

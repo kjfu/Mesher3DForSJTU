@@ -30,12 +30,15 @@ int main(int argc, char *argv[]){
 
     char inFilePath[1024];
 	int choice = -1;
-    std::string outFilePath = "out3d.mesh";
+
     std::string str;
     REAL size = 0;
 
 	std::string refineFileHeadIn;
     std::string refineFileHeadOut;
+
+	std::string fileIn;
+    std::string fileOut = "out3d.mesh";
 	bool quiet = false;
 	for(int i=1; i<argc; i++){
         str = std::string(argv[i]);
@@ -49,7 +52,7 @@ int main(int argc, char *argv[]){
 		}
         else if (str == "-o"){
             i++;
-            outFilePath = std::string(argv[i]);
+            fileOut = std::string(argv[i]);
 
         }
 		else if (str == "-r"){
@@ -57,6 +60,11 @@ int main(int argc, char *argv[]){
 			refineFileHeadIn = argv[i];
 			refineFileHeadOut = std::string(argv[i])+"_out";
 			choice = 3;
+		}
+		else if(str == "-p"){
+			i++;
+			fileIn = argv[i];
+			choice = 4;
 		}
         else if (str.length()>2){
             
@@ -70,34 +78,41 @@ int main(int argc, char *argv[]){
 				// size_t cut = str.find(".mesh");
 				// strcpy(inFilePath, str.substr(0, cut).c_str());
 				// in.load_medit(inFilePath, 1);
-				if(choice==3){
+				if (choice==3||choice==4){
 					continue;
 				}				
-				loadMesh(&in, str);
+				fileIn = argv[i];
 				choice = choice>0?choice:2;
 
 			}
         }
     }
 
-
-	choice = 3;
-
+	//TEST
+	// choice = 2;
+	// size = 15;
+	// fileIn = "/home/kjfu/research/Mesher3DForSJTU/examples/bugCase/cp.mesh";
+	// fileOut = "/home/kjfu/research/Mesher3DForSJTU/examples/bugCase/output.mesh";
+	//TEST
     if (choice == -1){
 		fprintf(stderr, "No input file!\n");
 		exit(1);
     }
 	if (choice == 1){
 			constrainedTetrahedralization(&in, &out, size, quiet);    
-			saveAsMESH(&out, outFilePath);
+			saveAsMESH(&out, fileOut);
 	}
 	else if (choice == 2){
 		std::vector<int> tetMarkers;
-		delaunayTetrahedralization(&in, &out, size, tetMarkers, quiet);
-		saveAsMESH(&out, outFilePath, tetMarkers);
+
+		delaunayTetrahedralization(fileIn, fileOut, size, quiet);
+
 	}
 	else if (choice == 3){
 		refineMesh(refineFileHeadIn, refineFileHeadOut, quiet);
+	}
+	else if(choice == 4){
+		generatePeriodicBoundaryConditionMesh(fileIn, fileOut, size, quiet);
 	}
 	
     return 0;

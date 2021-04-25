@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include "common.h"
 
 double SixTimesTetrahedronVolume(Vector3D v0, Vector3D v1, Vector3D v2, Vector3D v3){
     Vector3D a = v0 - v2;
@@ -211,8 +212,105 @@ void Mesh::deleteSmallScaleTetrahedronsPermanently(std::vector<Tetrahedron *> &d
 
 }
 
+void Mesh::rebuildAABBox(){
+    aabbox.reset();
+    for(auto n: nodes){
+        aabbox.insert(n->pos);
+    }
+}
+void Mesh::mergeMesh(Mesh &another, double eps){
+    struct kdtree *kd = kd_create(3);
 
-void Mesh::mergeMesh(Mesh &anotherMesh, std::vector<Node *> &mergeNodes, bool deleteUselessNodes){
+    if (!another.aabbox.isValid()){
+        another.rebuildAABBox();
+    }
+
+    for(auto n: nodes){
+        if(another.aabbox.contain(n->pos, eps)){
+            kd_insert(kd, n->pos.data(), n);
+        }
+    }
+
+    std::unordered_map<Node*, Node*> nodeMap;
+    std::vector<Node *> addNodes;    
+    int numMergeNodes=0;
+    for(auto n: another.nodes){
+        kdres *search_rst =  kd_nearest_range(kd, n->pos.data(),  eps);
+        if (kd_res_size(search_rst)){
+            numMergeNodes++;
+            void *data = kd_res_item_data(search_rst);
+            Node *nn = static_cast<Node*>(data);
+            nodeMap[n] = nn;
+
+        }
+        else{
+            Node *nn = new Node(n->pos);
+            addNodes.push_back(nn);
+            nodeMap[n]= nn;
+        }
+        kd_res_free(search_rst);
+    }
+    kd_free(kd);
+   // std::cout << "Total # of merge nodes: " << numMergeNodes << std::endl;
+
+    nodes.insert(nodes.end(), addNodes.begin(), addNodes.end());
+
+    for(auto e: another.tetrahedrons){
+        Tetrahedron *t = new Tetrahedron(nodeMap[e->nodes[0]]
+        , nodeMap[e->nodes[1]]
+        , nodeMap[e->nodes[2]]
+        , nodeMap[e->nodes[3]]);
+        tetrahedrons.push_back(t);
+    }
+
+
+    rebuildIndices();
+}
+void Mesh::mergeMesh(Mesh &anotherMesh, std::vector<Node *> &mergeNodes){
+    std::vector<Node *> borderNodes;
+    std::vector<Node *> anotherBorderNodes;
+    for(auto n:anotherMesh.nodes){
+        n->tempDate = nullptr;
+    }
+
+    extractBorderNodes(borderNodes);
+    anotherMesh.extractBorderNodes(anotherBorderNodes);     
+    struct kdtree *kd = kd_create(3);
+    for(auto n: borderNodes){
+        kd_insert(kd, n->pos.data(), static_cast<void*>(n));
+    }
+
+    for(auto n:anotherBorderNodes){
+        struct kdres *search_rst =  kd_nearest_range(kd, n->pos.data(), 1e-13);
+        if (kd_res_size(search_rst)){
+
+            void *data = kd_res_item_data(search_rst);
+            Node *goalNode = static_cast<Node*>(data);
+            n->tempDate = data;
+            mergeNodes.push_back(goalNode);
+        }
+        else{
+            Node *newNode = new Node();
+            *newNode = *n;
+            n->tempDate = newNode;
+            nodes.push_back(newNode);
+        }
+        kd_res_free(search_rst);
+    }
+
+    for (auto e: anotherMesh.tetrahedrons){
+        Tetrahedron *tet =  new Tetrahedron((Node*)e->nodes[0]->tempDate, (Node*)e->nodes[1]->tempDate, (Node*)e->nodes[2]->tempDate, (Node*)e->nodes[3]->tempDate);
+        this->tetrahedrons.push_back(tet);
+    }
+
+    kd_free(kd);
+    
+    this->rebuildIndices();
+    this->rebuildTetrahedronsAdjacency();
+
+}
+
+void Mesh::mergeMeshLegacy(Mesh &anotherMesh, std::vector<Node *> &mergeNodes, bool deleteUselessNodes){
     std::vector<Node *> borderNodes;
     std::vector<Node *> anotherBorderNodes;
     for(auto n:anotherMesh.nodes){
@@ -975,6 +1073,7 @@ void Mesh::interpolateNodeValuesForAnotherMesh(Mesh &anotherMesh){
         }
         else{
             n->edit=-1;
+            std::cout << "One vertex no tet contains!" << std::endl;
         }
         
     }
@@ -1006,3 +1105,40 @@ void Mesh::CavityBasedInsert(std::vector<Vector3D> &positions, bool toRestartRea
 }
 
 
+
+void Mesh::exportVTK(const std::string &filePath){
+    std::ofstream file(filePath);
+    file << "# vtk DataFile Version 3.0" << std::endl;
+    file << "vtk output"                 << std::endl;
+    file << "ASCII"                      << std::endl;
+    file << "DATASET UNSTRUCTURED_GRID"  << std::endl;
+    file << "POINTS " << nodes.size() << " double" << std::endl;
+    for(auto n: nodes){
+        file <<n->pos[0] <<  "  " << n->pos[1] << "  " << n->pos[2] << std::endl;
+    }
+
+    file << "CELLS " << tetrahedrons.size() << "  " << 5* tetrahedrons.size() << std::endl;
+    for(auto tet: tetrahedrons){
+        file << "4 " << tet->nodes[0]->index
+        << "  " << tet->nodes[1]->index
+        << "  " << tet->nodes[2]->index
+        << "  " << tet->nodes[3]->index 
+        <<std::endl;
+    }
+    file << "CELL_TYPES " << tetrahedrons.size() << std::endl;
+    for(auto tet: tetrahedrons){
+        file << VTK_ELEMENT_TYPE::VTK_TETRA << std::endl;
+    }
+
+    file << "POINT_DATA " << nodes.size() << std::endl;
+    file << "SCALARS part int 1" << std::endl;
+    file << "LOOKUP_TABLE default" << std::endl;
+    for(auto n: nodes){
+        file << n->label << std::endl;
+    } 
+
+
+
+    file.close();
+
+}

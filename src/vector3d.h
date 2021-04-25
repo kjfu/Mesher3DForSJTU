@@ -6,11 +6,9 @@ double distance(const Vector3D &n0, const Vector3D &n1);
 
 
 class Vector3D{    
-    
-private:  
+public:      
     std::array<double, 3> xyz;
 
-public:  
     explicit Vector3D(double value=0){
         xyz.fill(value);
     }

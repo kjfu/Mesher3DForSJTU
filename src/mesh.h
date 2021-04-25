@@ -9,38 +9,48 @@
 #include "RTree.h"
 #include "tetgen.h"
 #include "sphere.h"
+#include "edge.h"
 double SixTimesTetrahedronVolume(Vector3D v0, Vector3D v1, Vector3D v2, Vector3D v3);
 
 class Tetrahedron;
-struct Node;
+class TriangleElement;
 struct TriangleFacet;
 
-struct Node
-{
 
-    Vector3D pos;
+
+
+class TriangleElement{
+public: 
+    std::array<Node *, 3> nodes;
+    AABBox boundingBox;
     int index;
     int label;
     bool fixed = false;
-    double sizing;
-    std::vector<double> scalarValues;
-    std::vector<Vector3D> vectorValues;
     int edit = 0;
+    std::array<std::vector<TriangleElement* >, 3> adjacentTriangles; 
 
-    void *tempDate = nullptr;
-    
-    Node(){
+    TriangleElement(){
 
     }
 
-    Node(double x, double y, double z):pos(x,y,z){
+    TriangleElement(Node *n0, Node *n1, Node *n2){
+        nodes[0] = n0; nodes[1] = n1; nodes[2] = n2;
     }
 
-    Node(double *xyz): pos(xyz){
-    }
-    Node(Vector3D &vec):pos(vec){
-    }
 
+
+    Edge edge(int index, bool withNodes=false){
+        int i0 = (index+1)%3;
+        int i1 = (index+2)%3;
+        Edge e(nodes[i0]->index, nodes[i1]->index);
+        if (withNodes){
+            e.sNodes[0]=nodes[i0];
+            e.sNodes[1]=nodes[i1];
+        }
+        e.tri = this;
+        e.localIndexOfTriangle = index;
+        return e;
+    }    
 };
 
 struct TriangleFacet
@@ -68,7 +78,7 @@ public:
     AABBox boundingBox;
     Sphere circumsphere;
     int index;
-    int label;
+    int label=0;
     bool fixed = false;
     int edit = 0;
     Tetrahedron(){
@@ -287,7 +297,16 @@ public:
     // RTree<Tetrahedron*, double, 3, double, 10000> tetRTree;
     struct kdtree *nodeKDTree;
     struct kdtree *tetKDTree;
+    AABBox aabbox;
     Mesh(){}
+    ~ Mesh(){
+        for(int i=0; i<nodes.size(); i++){
+            delete nodes[i];
+        }
+        for (int i = 0; i < tetrahedrons.size(); i++){
+            delete tetrahedrons[i];
+        }
+    }
     void clone(const Mesh &aMesh);
     void splitElementFromCentre(Tetrahedron *tet); 
     void rebuildIndices();
@@ -297,7 +316,9 @@ public:
     void extractBorder(std::vector<Node *> &sNodes, std::vector<TriangleFacet> &sFacets);
     void deleteLargeScaleTetrahedronsPermanently(std::vector<Tetrahedron *> &delElements);
     void deleteSmallScaleTetrahedronsPermanently(std::vector<Tetrahedron *> &delElements);
-    void mergeMesh(Mesh &anotherMesh, std::vector<Node *> &mergeNodes, bool deleteUselessNodes = true);
+    void mergeMesh(Mesh &another, std::vector<Node *> &mergeNodes);// useless
+    void mergeMesh(Mesh &another, double eps=std::numeric_limits<double>::epsilon());
+    void mergeMeshLegacy(Mesh &anotherMesh, std::vector<Node *> &mergeNodes, bool deleteUselessNodes = true);
     void checkBooleanRemove(Mesh &anotherMesh, int outerLayers=0); 
     
     //
@@ -319,11 +340,19 @@ public:
 
     //IO
     void loadMESH(const std::string &filePath);
+    void exportVTK(const std::string &filePath);
     void loadNodeValues(const std::string &filePath);
     void exportNodeValues(const std::string &filePath);
     void loadTETGENIO(tetgenio &in, bool withLabel = false);
     void exportMESH(const std::string &filePath);
+
+
+    void rebuildAABBox();
 };
+
+
+
+
 
 
 void extractBorderNodes(std::vector<Tetrahedron *> &tets, std::vector<Node *> &borderNodes);

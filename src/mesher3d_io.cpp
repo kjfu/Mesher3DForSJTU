@@ -2,8 +2,9 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
-
+#include <limits>
 void loadMesh(tetgenio *in, std::string filePath){
+
 	in->mesh_dim = 3;
 	in->numberofpointattributes = 0;  // no point attribute.
 	in->numberofpointmtrs = 0;
@@ -54,6 +55,142 @@ void loadMesh(tetgenio *in, std::string filePath){
 	}
 }
 
+
+void loadNodesWithLabel(tetgenio &tetIn, std::string filePath, Vector3D &max, Vector3D &min, Vector3D &omax, Vector3D &omin, std::vector<int> &indexOf1){
+	tetIn.mesh_dim = 3;
+	tetIn.numberofpointattributes = 0;  // no point attribute.
+	tetIn.numberofpointmtrs = 0;
+	tetIn.firstnumber = 1;
+    max.xyz.fill(std::numeric_limits<double>::min());
+    min.xyz.fill(std::numeric_limits<double>::max());
+    omax.xyz.fill(std::numeric_limits<double>::min());
+    omin.xyz.fill(std::numeric_limits<double>::max());
+
+
+
+
+
+	std::ifstream inFile(filePath);
+	if (inFile.is_open()){
+
+		while (inFile){		
+			std::string line;
+			std::string keystring;
+			std::getline(inFile, line);
+			std::stringstream lineStream(line);
+			lineStream >> keystring;
+			if (keystring == "Vertices"){
+				std::getline(inFile, line);
+				lineStream.clear();
+				lineStream.str(line);				
+				int nv;
+				lineStream >> nv;
+				tetIn.numberofpoints = nv;
+				tetIn.pointlist = new REAL[tetIn.numberofpoints*3];
+				tetIn.pointmarkerlist = new int[tetIn.numberofpoints];
+                int index = 0;
+				for(int i=0; i<nv; i++){
+					std::getline(inFile, line);
+					lineStream.clear();
+					lineStream.str(line);
+                    double x, y, z;
+                    int marker;
+                    lineStream >> x >> y >> z >> marker;                        
+                    tetIn.pointlist[3*i] = x;
+                    tetIn.pointlist[3*i+1] = y;
+                    tetIn.pointlist[3*i+2] = z;
+                    if (marker==0){
+                        omax[0] = std::max(omax[0], x);
+                        omax[1] = std::max(omax[1], y);
+                        omax[2] = std::max(omax[2], z);
+                        omin[0] = std::min(omin[0], x);
+                        omin[1] = std::min(omin[1], y);
+                        omin[2] = std::min(omin[2], z);                        
+                    }
+                    else{
+                        indexOf1.push_back(index);
+                        max[0] = std::max(max[0], x);
+                        max[1] = std::max(max[1], y);
+                        max[2] = std::max(max[2], z);
+                        min[0] = std::min(min[0], x);
+                        min[1] = std::min(min[1], y);
+                        min[2] = std::min(min[2], z);
+                    }
+                    index++;
+				}
+			}
+		}
+
+        inFile.close();
+	}
+
+}
+
+void loadNodesWithLabel(tetgenio &tetIn, std::string filePath, Vector3D &max, Vector3D &min, Vector3D &omax, Vector3D &omin){
+	tetIn.mesh_dim = 3;
+	tetIn.numberofpointattributes = 0;  // no point attribute.
+	tetIn.numberofpointmtrs = 0;
+	tetIn.firstnumber = 1;
+    max.xyz.fill(std::numeric_limits<double>::min());
+    min.xyz.fill(std::numeric_limits<double>::max());
+    omax.xyz.fill(std::numeric_limits<double>::min());
+    omin.xyz.fill(std::numeric_limits<double>::max());
+
+	std::ifstream inFile(filePath);
+	if (inFile.is_open()){
+
+		while (inFile){		
+			std::string line;
+			std::string keystring;
+			std::getline(inFile, line);
+			std::stringstream lineStream(line);
+			lineStream >> keystring;
+			if (keystring == "Vertices"){
+				std::getline(inFile, line);
+				lineStream.clear();
+				lineStream.str(line);				
+				int nv;
+				lineStream >> nv;
+				tetIn.numberofpoints = nv;
+				tetIn.pointlist = new REAL[tetIn.numberofpoints*3];
+				tetIn.pointmarkerlist = new int[tetIn.numberofpoints];
+				for(int i=0; i<nv; i++){
+					std::getline(inFile, line);
+					lineStream.clear();
+					lineStream.str(line);
+                    double x, y, z;
+                    int marker;
+                    lineStream >> x >> y >> z >> marker;                        
+                    tetIn.pointlist[3*i] = x;
+                    tetIn.pointlist[3*i+1] = y;
+                    tetIn.pointlist[3*i+2] = z;
+                    if (marker==0){
+                        omax[0] = std::max(omax[0], x);
+                        omax[1] = std::max(omax[1], y);
+                        omax[2] = std::max(omax[2], z);
+                        omin[0] = std::min(omin[0], x);
+                        omin[1] = std::min(omin[1], y);
+                        omin[2] = std::min(omin[2], z);                        
+                    }
+                    else{
+                        max[0] = std::max(max[0], x);
+                        max[1] = std::max(max[1], y);
+                        max[2] = std::max(max[2], z);
+                        min[0] = std::min(min[0], x);
+                        min[1] = std::min(min[1], y);
+                        min[2] = std::min(min[2], z);
+                    }
+				}
+			}
+		}
+
+        inFile.close();
+	}
+
+}
+
+
+
 void loadREMESH(std::vector<int> &elements, std::vector<std::array<double,3>> &points, std::string filePath){
     std::ifstream inFile(filePath);
     if (inFile.is_open()){
@@ -103,7 +240,7 @@ void saveAsMESH(tetgenio *out, std::string filePath){
     outfile << "Dimension\n         3\n";
     outfile << "Vertices\n";
     outfile << out->numberofpoints << "\n";
-    if(out->pointmarkerlist!=nullptr){
+    if (out->pointmarkerlist!=nullptr){
         for (int i=0; i<out->numberofpoints; i++){
             outfile << out->pointlist[i*3]
                     << "  " << out->pointlist[i*3+1]
