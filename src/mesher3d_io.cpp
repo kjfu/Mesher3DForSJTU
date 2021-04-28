@@ -162,7 +162,7 @@ void loadNodesWithLabel(tetgenio &tetIn, std::string filePath, Vector3D &max, Ve
                     int marker;
                     lineStream >> x >> y >> z >> marker;                        
 
-                    if (marker==0){
+                    if (marker!=1){
                         tetIn.pointlist[3*index] = x;
                         tetIn.pointlist[3*index+1] = y;
                         tetIn.pointlist[3*index+2] = z;

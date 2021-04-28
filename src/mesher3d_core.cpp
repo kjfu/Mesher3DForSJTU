@@ -64,8 +64,8 @@ void generateBoundingBoxTETGENIO(tetgenio &tetIn, Vector3D xyzmax, Vector3D xyzm
 void delaunayTetrahedralization(const std::string &fileIn, const std::string &fileOut, double size, bool beQuiet){
 	Vector3D xyzmax;
 	Vector3D xyzmin;
-	Vector3D oxyzmax;
-	Vector3D oxyzmin;
+	// Vector3D oxyzmax;
+	// Vector3D oxyzmin;
 
 	SurfaceMesh shellSurface;
 	Mesh innerMesh;
@@ -105,7 +105,11 @@ void delaunayTetrahedralization(const std::string &fileIn, const std::string &fi
 	}
 	shellIn.numberofholes=1;
 	shellIn.holelist = new double[3];
-	Vector3D holePos = 0.5*(oxyzmax+oxyzmin);
+	Vector3D holePos(0, 0, 0);
+	for(auto n: shellSurface.nodes){
+		holePos+=n->pos;
+	}
+	holePos/=shellSurface.nodes.size();
 	shellIn.holelist[0] = holePos[0];
 	shellIn.holelist[1] = holePos[1];
 	shellIn.holelist[2] = holePos[2];
