@@ -92,8 +92,8 @@ int main(int argc, char *argv[]){
 	// choice = 3;
 	// quiet = true;
 	// size = 15;
-	// fileIn = "/home/kjfu/research/Mesher3DForSJTU/examples/bugCase/cp.mesh";
-	// fileOut = "/home/kjfu/research/Mesher3DForSJTU/examples/bugCase/output.mesh";
+	// fileIn = "/home/kjfu/research/Mesher3DForSJTU/examples/bugCase/20210428/cp.mesh";
+	// fileOut = "/home/kjfu/research/Mesher3DForSJTU/examples/bugCase/20210428/output.mesh";
 	// refineFileHeadIn = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d";
 	// refineFileHeadOut = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d_out";
 	//TEST

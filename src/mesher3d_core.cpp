@@ -71,11 +71,12 @@ void delaunayTetrahedralization(const std::string &fileIn, const std::string &fi
 	Mesh innerMesh;
 	tetgenio innerIn;
 	tetgenio innerOut;
-	loadNodesWithLabel(innerIn, fileIn, xyzmax, xyzmin,oxyzmax, oxyzmin);
-	char cmd[] = "Q";
-	tetrahedralize(cmd, &innerIn, &innerOut);
-	generateConvaxHullFromPointsIn3D(innerOut, oxyzmax, oxyzmin, innerMesh, shellSurface);
+	loadNodesWithLabel(innerIn, fileIn, xyzmax, xyzmin);
+	// char cmd[] = "Q";
+	// tetrahedralize(cmd, &innerIn, &innerOut);
+	generateConvaxHullFromPointsIn3D(innerIn, innerMesh, shellSurface);
 	
+
 	shellSurface.estimateSizing();
 	int numNodesInsideShell = shellSurface.nodes.size();
 
@@ -93,6 +94,7 @@ void delaunayTetrahedralization(const std::string &fileIn, const std::string &fi
 	tetgenio shellIn;
 	tetgenio shellOut;
 	shellSurface.exportTETGENIO(shellIn);
+
 	shellIn.numberofpointmtrs = 1;
 	shellIn.pointmtrlist = new double[shellIn.numberofpoints];
 	for(int i=0; i<numNodesInsideShell; i++){
@@ -121,6 +123,7 @@ void delaunayTetrahedralization(const std::string &fileIn, const std::string &fi
 	shellMesh.mergeMesh(innerMesh, shellSurface.minSizing*0.01);
 
 	shellMesh.exportMESH(fileOut);
+
 
 
 }
@@ -586,51 +589,23 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 	std::cout << "[*************] Insert time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
 
 
-	Vector3D oxyzmin(std::numeric_limits<double>::max());
-	Vector3D oxyzmax(std::numeric_limits<double>::min());
+
 	std::vector<Vector3D> points;
 	for(auto &n: goalMesh.nodes){
 		if(n->label==0){
 			points.emplace_back(n->pos);
-			oxyzmax[0] = std::max(oxyzmax[0], points.back()[0]);
-			oxyzmax[1] = std::max(oxyzmax[1], points.back()[1]);
-			oxyzmax[2] = std::max(oxyzmax[2], points.back()[2]);
-			oxyzmin[0] = std::min(oxyzmin[0], points.back()[0]);
-			oxyzmin[1] = std::min(oxyzmin[1], points.back()[1]);
-			oxyzmin[2] = std::min(oxyzmin[2], points.back()[2]);
 		}
 	}
 	for(auto &p: append_points){
 		points.emplace_back(p[0], p[1], p[2]);
-			oxyzmax[0] = std::max(oxyzmax[0], points.back()[0]);
-			oxyzmax[1] = std::max(oxyzmax[1], points.back()[1]);
-			oxyzmax[2] = std::max(oxyzmax[2], points.back()[2]);
-			oxyzmin[0] = std::min(oxyzmin[0], points.back()[0]);
-			oxyzmin[1] = std::min(oxyzmin[1], points.back()[1]);
-			oxyzmin[2] = std::min(oxyzmin[2], points.back()[2]);
 	}
-
-	double dx = oxyzmax[0] - oxyzmin[0];
-	double dy = oxyzmax[1] - oxyzmin[1];
-	double dz = oxyzmax[2] - oxyzmin[2];
-	Vector3D dd(dx, dy, dz);
-	Vector3D xyzmax = oxyzmax + dd;
-	Vector3D xyzmin = oxyzmin - dd; 
-	points.emplace_back(xyzmax[0], xyzmax[1], xyzmax[2]);
-	points.emplace_back(xyzmin[0], xyzmax[1], xyzmax[2]);
-	points.emplace_back(xyzmax[0], xyzmin[1], xyzmax[2]);
-	points.emplace_back(xyzmax[0], xyzmax[1], xyzmin[2]);
-	points.emplace_back(xyzmin[0], xyzmin[1], xyzmax[2]);
-	points.emplace_back(xyzmin[0], xyzmax[1], xyzmin[2]);
-	points.emplace_back(xyzmax[0], xyzmin[1], xyzmin[2]);
-	points.emplace_back(xyzmin[0], xyzmin[1], xyzmin[2]);
 
 	tetgenio tmpOut;
 	tetgenio tmpIn;
 	transportVector3dsToTETGENIO(points, tmpIn);
 	Mesh innerMesh;
 	SurfaceMesh surfaceInside;
-	generateConvaxHullFromPointsIn3D(tmpIn, oxyzmax, oxyzmin, innerMesh, surfaceInside);
+	generateConvaxHullFromPointsIn3D(tmpIn, innerMesh, surfaceInside);
 
 	innerMesh.readyForSpatialSearch();
 	timebegin= clock();
@@ -713,6 +688,7 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 
 	goalMesh.exportNodeValues(fileOutHead + ".value");
 	goalMesh.exportMESH(fileOutHead + ".mesh");
+	goalMesh.exportVTK(fileInHead+".vtk");
 	std::cout << "Finish Adaption!\n";
 
 }
@@ -998,7 +974,52 @@ void generatePeriodicBoundaryConditionMesh(const std::string &fileIn, const std:
 }
 
 
+void generateConvaxHullFromPointsIn3D(tetgenio &tet, Mesh &goalMesh, SurfaceMesh &goalSurface){
+	tetgenio tetout;
+	char cmd[] = "Q";
+	tetrahedralize(cmd, &tet, &tetout);
 
+	goalMesh.loadTETGENIO(tetout);
+	goalMesh.rebuildTetrahedronsAdjacency();
+
+
+	std::unordered_map<Node*, Node*> oldNewNodes;
+	auto getNode
+	=[&oldNewNodes]
+	(Node* n){
+		Node* rst =nullptr;
+		if(oldNewNodes.find(n)!=oldNewNodes.end()){
+			rst = oldNewNodes[n];
+		}
+		else{
+			rst = new Node(n->pos);
+			rst->label = n->label;
+			oldNewNodes[n] = rst;
+		}
+		return rst;
+	};
+
+
+	for(auto &e: goalMesh.tetrahedrons){
+
+		for(int i=0; i<4; i++){
+
+			if (e->adjacentTetrahedrons[i]==nullptr){
+				TriangleElement *tri = new TriangleElement(getNode(e->nodes[(i+1)%4]), getNode(e->nodes[(i+2)%4]), getNode(e->nodes[(i+3)%4]));
+				goalSurface.triangles.push_back(tri);
+			}
+		}
+	}
+
+
+
+
+	for(auto &n: oldNewNodes){
+		goalSurface.nodes.push_back(n.second);
+	}
+
+	goalSurface.rebuildIndices();
+}
 void generateConvaxHullFromPointsIn3D(tetgenio &tet, Vector3D &oxyzmax, Vector3D &oxyzmin, Mesh &goalMesh, SurfaceMesh &goalSurface){
 	tetgenio tetout;
 	char cmd[] = "Q";

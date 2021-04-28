@@ -126,6 +126,64 @@ void loadNodesWithLabel(tetgenio &tetIn, std::string filePath, Vector3D &max, Ve
 
 }
 
+void loadNodesWithLabel(tetgenio &tetIn, std::string filePath, Vector3D &max, Vector3D &min){
+	tetIn.mesh_dim = 3;
+	tetIn.numberofpointattributes = 0;  // no point attribute.
+	tetIn.numberofpointmtrs = 0;
+	tetIn.firstnumber = 1;
+    max.xyz.fill(std::numeric_limits<double>::min());
+    min.xyz.fill(std::numeric_limits<double>::max());
+
+
+	std::ifstream inFile(filePath);
+	if (inFile.is_open()){
+
+		while (inFile){		
+			std::string line;
+			std::string keystring;
+			std::getline(inFile, line);
+			std::stringstream lineStream(line);
+			lineStream >> keystring;
+			if (keystring == "Vertices"){
+				std::getline(inFile, line);
+				lineStream.clear();
+				lineStream.str(line);				
+				int nv;
+				lineStream >> nv;
+				tetIn.numberofpoints = nv-8;
+				tetIn.pointlist = new REAL[tetIn.numberofpoints*3];
+				tetIn.pointmarkerlist = new int[tetIn.numberofpoints];
+                int index=0;
+				for(int i=0; i<nv; i++){
+					std::getline(inFile, line);
+					lineStream.clear();
+					lineStream.str(line);
+                    double x, y, z;
+                    int marker;
+                    lineStream >> x >> y >> z >> marker;                        
+
+                    if (marker==0){
+                        tetIn.pointlist[3*index] = x;
+                        tetIn.pointlist[3*index+1] = y;
+                        tetIn.pointlist[3*index+2] = z;
+                        index++;                       
+                    }
+                    else{
+                        max[0] = std::max(max[0], x);
+                        max[1] = std::max(max[1], y);
+                        max[2] = std::max(max[2], z);
+                        min[0] = std::min(min[0], x);
+                        min[1] = std::min(min[1], y);
+                        min[2] = std::min(min[2], z);
+                    }
+				}
+			}
+		}
+
+        inFile.close();
+	}    
+}
+
 void loadNodesWithLabel(tetgenio &tetIn, std::string filePath, Vector3D &max, Vector3D &min, Vector3D &omax, Vector3D &omin){
 	tetIn.mesh_dim = 3;
 	tetIn.numberofpointattributes = 0;  // no point attribute.
