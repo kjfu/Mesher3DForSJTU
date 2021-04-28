@@ -9,7 +9,7 @@
 #include "mesh.h"
 #include "triangle.h"
 #include "surfaceMesh.h"
-
+#include "hashFacet.h"
 
 void generateBoundingBoxTETGENIO(tetgenio &tetIn, Vector3D xyzmax, Vector3D xyzmin, double size, tetgenio &tetOut){
 
@@ -519,7 +519,207 @@ void constrainedTetrahedralization(tetgenio *in, tetgenio *out, REAL size, bool 
 
 }
 
+void extractBorder(std::vector<Tetrahedron *>&tets, SurfaceMesh &aSurface){
+    std::set<Node *> nodeSet; 
+    HashFacetTable facetTable;
+    for(auto e: tets){
+        for(int i=0; i<4; i++){
+            TriangleFacet keyFacet = e->facet(i, true);
+            TriangleFacet goalFacet;
+            if (facetTable.search(keyFacet, goalFacet)){
+                facetTable.remove(goalFacet);
+            }
+            else{
+                facetTable.insert(keyFacet);
+            }
+        }
+    }
+	std::unordered_map<Node*, Node*> oldNewNodes;
+	auto getNode
+	=
+	[&oldNewNodes]
+	(Node* key){
+		Node *rst;
+		if(oldNewNodes.find(key)!=oldNewNodes.end()){
+			rst = oldNewNodes[key];
+		}
+		else{
+			rst = new Node(key->pos);
+			rst->label= key->label;
+			oldNewNodes[key] = rst;
+		}
+		return rst;
+	};
+
+    for(auto kv:facetTable.columns){
+        for(auto f: kv.second){
+			TriangleElement *tri = new TriangleElement(getNode(f.sNodes[0]), getNode(f.sNodes[1]), getNode(f.sNodes[2]));
+            aSurface.triangles.push_back(tri);
+        }
+    }
+	for(auto kv: oldNewNodes){
+		aSurface.nodes.push_back(kv.second);
+	}
+
+	aSurface.rebuildIndices();
+}
+
+void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead, bool beQuiet){
+	Mesh goalMesh;
+	Mesh backgroundMesh;
+	double timebegin, timeend;
+	std::vector<int> refine_elements;
+	std::vector<std::array<double,3>> append_points;
+	goalMesh.loadMESH(fileInHead + ".mesh");
+	loadREMESH(refine_elements, append_points, fileInHead+".remesh");
+	backgroundMesh.clone(goalMesh);
+	backgroundMesh.loadNodeValues(fileInHead + ".value");
+
+	std::vector<Vector3D> positions;
+		for(auto nt:refine_elements){
+			Vector3D vec = goalMesh.tetrahedrons[nt-1]->center();
+			positions.push_back(vec);
+		}
+	timebegin = clock_t();
+	goalMesh.CavityBasedInsert(positions);
+	timeend = clock_t();
+	std::cout << "[*************] Insert time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
+
+
+	Vector3D oxyzmin(std::numeric_limits<double>::max());
+	Vector3D oxyzmax(std::numeric_limits<double>::min());
+	std::vector<Vector3D> points;
+	for(auto &n: goalMesh.nodes){
+		if(n->label==0){
+			points.emplace_back(n->pos);
+			oxyzmax[0] = std::max(oxyzmax[0], points.back()[0]);
+			oxyzmax[1] = std::max(oxyzmax[1], points.back()[1]);
+			oxyzmax[2] = std::max(oxyzmax[2], points.back()[2]);
+			oxyzmin[0] = std::min(oxyzmin[0], points.back()[0]);
+			oxyzmin[1] = std::min(oxyzmin[1], points.back()[1]);
+			oxyzmin[2] = std::min(oxyzmin[2], points.back()[2]);
+		}
+	}
+	for(auto &p: append_points){
+		points.emplace_back(p[0], p[1], p[2]);
+			oxyzmax[0] = std::max(oxyzmax[0], points.back()[0]);
+			oxyzmax[1] = std::max(oxyzmax[1], points.back()[1]);
+			oxyzmax[2] = std::max(oxyzmax[2], points.back()[2]);
+			oxyzmin[0] = std::min(oxyzmin[0], points.back()[0]);
+			oxyzmin[1] = std::min(oxyzmin[1], points.back()[1]);
+			oxyzmin[2] = std::min(oxyzmin[2], points.back()[2]);
+	}
+
+	double dx = oxyzmax[0] - oxyzmin[0];
+	double dy = oxyzmax[1] - oxyzmin[1];
+	double dz = oxyzmax[2] - oxyzmin[2];
+	Vector3D dd(dx, dy, dz);
+	Vector3D xyzmax = oxyzmax + dd;
+	Vector3D xyzmin = oxyzmin - dd; 
+	points.emplace_back(xyzmax[0], xyzmax[1], xyzmax[2]);
+	points.emplace_back(xyzmin[0], xyzmax[1], xyzmax[2]);
+	points.emplace_back(xyzmax[0], xyzmin[1], xyzmax[2]);
+	points.emplace_back(xyzmax[0], xyzmax[1], xyzmin[2]);
+	points.emplace_back(xyzmin[0], xyzmin[1], xyzmax[2]);
+	points.emplace_back(xyzmin[0], xyzmax[1], xyzmin[2]);
+	points.emplace_back(xyzmax[0], xyzmin[1], xyzmin[2]);
+	points.emplace_back(xyzmin[0], xyzmin[1], xyzmin[2]);
+
+	tetgenio tmpOut;
+	tetgenio tmpIn;
+	transportVector3dsToTETGENIO(points, tmpIn);
+	Mesh innerMesh;
+	SurfaceMesh surfaceInside;
+	generateConvaxHullFromPointsIn3D(tmpIn, oxyzmax, oxyzmin, innerMesh, surfaceInside);
+
+	innerMesh.readyForSpatialSearch();
+	timebegin= clock();
+	goalMesh.checkBooleanRemove(innerMesh);
+
+
+	for(auto n: goalMesh.nodes){
+		n->edit=1;
+	}
+	std::vector<Tetrahedron *> rmtets;
+	SurfaceMesh surfaceOutside;
+	for(auto &e: goalMesh.tetrahedrons){
+		if (e->edit!=-1){
+
+			for(auto &n: e->nodes){
+				n->edit=0;
+			}
+		}
+		else{
+			rmtets.push_back(e);
+		}
+	}
+
+	extractBorder(rmtets, surfaceOutside);
+
+	for(int i=0; i<goalMesh.nodes.size(); i++){
+		if(goalMesh.nodes[i]->edit==1){
+			delete goalMesh.nodes[i];
+			goalMesh.nodes.erase(goalMesh.nodes.begin()+i);
+			i--;
+		}
+	}
+
+	for(int i=0; i<goalMesh.tetrahedrons.size(); i++){
+		if(goalMesh.tetrahedrons[i]->edit==-1){
+			delete goalMesh.tetrahedrons[i];
+			goalMesh.tetrahedrons.erase(goalMesh.tetrahedrons.begin()+i);
+			i--;
+		}
+	}
+
+	goalMesh.rebuildIndices();
+	timeend = clock();
+	std::cout <<"[*************] Boolean remove time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
+
+	for(auto n: surfaceInside.nodes){
+		n->label = 1;
+	}
+	surfaceOutside.addSubSurfaceMesh(surfaceInside);
+
+	tetgenio shellIn;
+	tetgenio shellOut;
+	Mesh shell;
+	surfaceOutside.exportTETGENIO(shellIn);
+	shellIn.numberofholes = 1;
+	Vector3D hole;
+	for(auto n: surfaceInside.nodes){
+		hole+=n->pos;
+	}
+	hole/=surfaceInside.nodes.size();
+	shellIn.holelist = new double[3];
+	shellIn.holelist[0] = hole[0];
+	shellIn.holelist[1] = hole[1];
+	shellIn.holelist[2] = hole[2];
+	char cmd[] = "pqmYQ";
+	tetrahedralize(cmd, &shellIn, &shellOut);
+	Mesh midMesh;
+	midMesh.loadTETGENIO(shellOut, true);
+
+	midMesh.mergeMesh(innerMesh, 1e-10);
+
+
+	goalMesh.mergeMesh(midMesh, 1e-10);
+	
+
+	timebegin= clock();
+	backgroundMesh.interpolateNodeValuesForAnotherMesh(goalMesh);
+	timeend = clock();
+	std::cout <<"[*************] Interpolation time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
+
+	goalMesh.exportNodeValues(fileOutHead + ".value");
+	goalMesh.exportMESH(fileOutHead + ".mesh");
+	std::cout << "Finish Adaption!\n";
+
+}
+
+
 void refineMesh(const std::string &fileInHead, const std::string &fileOutHead, bool beQuiet){
+
 		Mesh goalMesh;
 		Mesh backgroundMesh;
 		double timebegin, timeend;
@@ -585,6 +785,7 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead, b
 		std::vector<Node *> grad_nodes;
 		std::vector<TriangleFacet> grad_facets; 
 
+
 		transportNodesToTETGENIO(tmpMesh.nodes, tmpin);
 		if(beQuiet){
 			char cmd[]="fQ";
@@ -595,7 +796,7 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead, b
 			tetrahedralize(cmd, &tmpin, &tmpout);			
 		}
 
-		instructTetrahedronConnectByTETGENIO(tmpMesh.nodes, tmpout, tmpMesh.tetrahedrons);
+		instructTetrahedronConnectByTETGENIO(tmpMesh.nodes, tmpout, tmpMesh.tetrahedrons);		
 		tmpMesh.rebuildIndices();
 		tmpMesh.estimateSizing();
 		tmpMesh.extractBorder(grad_nodes, grad_facets);
@@ -626,7 +827,7 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead, b
 
 
 		goalMesh.deleteLargeScaleTetrahedronsPermanently(rmTets);
-		
+
 		std::vector<Vector3D> holes;
 		holes.emplace_back(0,0,0);
 		tetgenio grad_in, grad_out;
@@ -644,7 +845,7 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead, b
 
 		std::vector<Node *>mergeNodes0;
 		// std::cout << "[*************] Start merge!\n";
-		goalMesh.mergeMesh(gradMesh, mergeNodes0);
+		goalMesh.mergeMesh(gradMesh, mergeNodes0);	
 		for(auto n:goalMesh.nodes){
 			n->label = 1;
 		}
@@ -669,7 +870,7 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead, b
 		extractBorderNodes(goalMesh.tetrahedrons, nodes);
 		for(auto n: nodes){
 			n->label = 2;
-		}
+		}	
 		// std::cout << "[*************] Finish merge!\n";
 		timebegin= clock();
 		backgroundMesh.interpolateNodeValuesForAnotherMesh(goalMesh);
@@ -836,6 +1037,7 @@ void generateConvaxHullFromPointsIn3D(tetgenio &tet, Vector3D &oxyzmax, Vector3D
 		}
 		else{
 			rst = new Node(n->pos);
+			rst->label = n->label;
 			oldNewNodes[n] = rst;
 		}
 		return rst;

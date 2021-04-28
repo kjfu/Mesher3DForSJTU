@@ -14,6 +14,7 @@ void constrainedTetrahedralization(tetgenio *in, tetgenio *out, REAL size, bool 
 
 
 void refineMesh(const std::string &fileInHead, const std::string &fileOutHead, bool beQuiet=false);
+void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead, bool beQuiet=false);
 
 
 void generatePeriodicBoundaryConditionMesh(const std::string &fileIn, const std::string &fileOut, double size, bool beQuiet=false);
@@ -28,5 +29,5 @@ void generateConvaxHullFromPointsInPlane(std::vector<std::array<double, 2>> &pla
 void generateConvaxHullFromPointsIn3D(tetgenio &tet, Vector3D &oxyzmax, Vector3D &oxyzmin, Mesh &goalMesh, SurfaceMesh &goalSurface);
 void resetPoints(tetgenio &tet, Vector3D pMax, Vector3D pMin, std::vector<int> &indexOf1);
 
-
+void extractBorder(std::vector<Tetrahedron *>&tets, SurfaceMesh &aSurface);
 void generateBoundingBoxTETGENIO(tetgenio &tetIn, Vector3D pMax, Vector3D pMin, double size, tetgenio &tetOut);

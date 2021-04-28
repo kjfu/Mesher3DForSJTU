@@ -89,10 +89,13 @@ int main(int argc, char *argv[]){
     }
 
 	//TEST
-	// choice = 2;
+	// choice = 3;
+	// quiet = true;
 	// size = 15;
 	// fileIn = "/home/kjfu/research/Mesher3DForSJTU/examples/bugCase/cp.mesh";
 	// fileOut = "/home/kjfu/research/Mesher3DForSJTU/examples/bugCase/output.mesh";
+	// refineFileHeadIn = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d";
+	// refineFileHeadOut = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d_out";
 	//TEST
     if (choice == -1){
 		fprintf(stderr, "No input file!\n");
@@ -109,7 +112,7 @@ int main(int argc, char *argv[]){
 
 	}
 	else if (choice == 3){
-		refineMesh(refineFileHeadIn, refineFileHeadOut, quiet);
+		refineMeshV2(refineFileHeadIn, refineFileHeadOut, quiet);
 	}
 	else if(choice == 4){
 		generatePeriodicBoundaryConditionMesh(fileIn, fileOut, size, quiet);

@@ -399,14 +399,16 @@ void SurfaceMesh::exportSU2(const std::string &filePath){
 }
 
 void SurfaceMesh::exportTETGENIO(tetgenio &out){
-     out.numberofpoints = this->nodes.size();
-     out.firstnumber = 0;
+    out.numberofpoints = this->nodes.size();
+    out.firstnumber = 0;
 
     out.pointlist = new REAL[out.numberofpoints*3];
+    out.pointmarkerlist = new int[out.numberofpoints];
     for(int i=0; i<out.numberofpoints; i++){
         out.pointlist[3*i] = nodes[i]->pos[0];
         out.pointlist[3*i+1] = nodes[i]->pos[1];
         out.pointlist[3*i+2] = nodes[i]->pos[2];
+        out.pointmarkerlist[i] = nodes[i]->label;
     }
 
     out.numberoffacets = triangles.size();

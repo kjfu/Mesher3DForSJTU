@@ -295,8 +295,8 @@ public:
     std::vector<Node *> nodes;
     std::vector<Tetrahedron *> tetrahedrons;
     // RTree<Tetrahedron*, double, 3, double, 10000> tetRTree;
-    struct kdtree *nodeKDTree;
-    struct kdtree *tetKDTree;
+    struct kdtree *nodeKDTree = nullptr;
+    struct kdtree *tetKDTree = nullptr;
     AABBox aabbox;
     Mesh(){}
     ~ Mesh(){
@@ -358,6 +358,7 @@ public:
 void extractBorderNodes(std::vector<Tetrahedron *> &tets, std::vector<Node *> &borderNodes);
 void extractBorderFacets(std::vector<Tetrahedron *> &tets, std::vector<TriangleFacet> &borderFacets);
 void extratctBorder(std::vector<Tetrahedron *> &tets, std::vector<Node *> &borderNodes, std::vector<TriangleFacet> &borderFacets);
+void transportVector3dsToTETGENIO(const std::vector<Vector3D> &vec3ds, tetgenio &out);
 void transportNodesToTETGENIO(const std::vector<Node *> &sNodes, tetgenio &out);
 void transportFacetsToTETGENIO(std::vector<Node *> &sNodes, std::vector<TriangleFacet> &facets, std::vector<Vector3D> &holes, tetgenio &out);
 void instructTetrahedronConnectByTETGENIO(std::vector<Node *> &nodes, tetgenio &in, std::vector<Tetrahedron *> &tets);

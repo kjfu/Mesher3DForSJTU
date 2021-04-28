@@ -94,7 +94,7 @@ void Mesh::extractBorderNodeIndicesWithLabels(std::vector<int> labels, std::set<
 }
 
 void Mesh::extractBorderNodes(std::vector<Node *> &sNodes){
-
+    rebuildTetrahedronsAdjacency();
     HashFacetTable table;
     for(auto &e: tetrahedrons){
         for(int i=0; i<4; i++){
@@ -273,8 +273,8 @@ void Mesh::mergeMesh(Mesh &anotherMesh, std::vector<Node *> &mergeNodes){
         n->tempDate = nullptr;
     }
 
-    extractBorderNodes(borderNodes);
-    anotherMesh.extractBorderNodes(anotherBorderNodes);     
+    extractBorderNodes(borderNodes); 
+    anotherMesh.extractBorderNodes(anotherBorderNodes);
     struct kdtree *kd = kd_create(3);
     for(auto n: borderNodes){
         kd_insert(kd, n->pos.data(), static_cast<void*>(n));
@@ -420,8 +420,12 @@ void Mesh::splitElementFromCentre(Tetrahedron *tet){
 
 
 void Mesh::readyForSpatialSearch(bool toBuildTetKDTree, bool toBuildNodeKDTree, bool toEstimateSizing){
+   
     if (toBuildNodeKDTree){
-        free(nodeKDTree);
+        if (nodeKDTree){
+            free(nodeKDTree);            
+        }
+
         nodeKDTree = kd_create(3);
         for(auto n: nodes){
             kd_insert(nodeKDTree, n->pos.data(), static_cast<void*>(n));
@@ -907,6 +911,21 @@ void extratctBorder(std::vector<Tetrahedron *> &tets, std::vector<Node *> &borde
     }
     borderNodes.insert(borderNodes.end(), nodeSet.begin(), nodeSet.end());
 }
+
+
+void transportVector3dsToTETGENIO(const std::vector<Vector3D> &vec3ds, tetgenio &out){
+    out.numberofpoints = vec3ds.size();
+    out.pointlist = new double[out.numberofpoints*3];
+    out.pointmarkerlist = new int[out.numberofpoints];
+    for(int i=0; i<out.numberofpoints; i++){
+        for(int j=0; j<3; j++){
+            out.pointlist[3*i+j] = vec3ds[i][j]; 
+        }
+        out.pointmarkerlist[i] = 0;
+    }
+}
+
+
 
 void transportNodesToTETGENIO(const std::vector<Node *> &sNodes, tetgenio &out){
     out.numberofpoints = sNodes.size();
