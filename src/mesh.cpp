@@ -245,6 +245,7 @@ void Mesh::mergeMesh(Mesh &another, double eps){
         }
         else{
             Node *nn = new Node(n->pos);
+            nn->label = n->label;
             addNodes.push_back(nn);
             nodeMap[n]= nn;
         }
@@ -260,6 +261,7 @@ void Mesh::mergeMesh(Mesh &another, double eps){
         , nodeMap[e->nodes[1]]
         , nodeMap[e->nodes[2]]
         , nodeMap[e->nodes[3]]);
+        t->label = e->label;
         tetrahedrons.push_back(t);
     }
 
@@ -1150,12 +1152,18 @@ void Mesh::exportVTK(const std::string &filePath){
     }
 
     file << "POINT_DATA " << nodes.size() << std::endl;
-    file << "SCALARS part int 1" << std::endl;
+    file << "SCALARS point_part int 1" << std::endl;
     file << "LOOKUP_TABLE default" << std::endl;
     for(auto n: nodes){
         file << n->label << std::endl;
     } 
 
+    file << "CELL_DATA " << tetrahedrons.size() << std::endl;
+    file << "SCALARS tet_part int 1" << std::endl;
+    file << "LOOKUP_TABLE default" << std::endl;
+    for(auto t: tetrahedrons){
+        file << t->label << std::endl;
+    }
 
 
     file.close();

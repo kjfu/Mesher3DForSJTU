@@ -123,9 +123,12 @@ void delaunayTetrahedralization(const std::string &fileIn, const std::string &fi
 	for(int i=numNodesInsideShell; i<numNodesInsideShell+numNodesOutsideShell; i++){
 		shellMesh.nodes[i]->label = 1;
 	}
+	for(auto &tet: shellMesh.tetrahedrons){
+		tet->label=1;
+	}
 
 	shellMesh.mergeMesh(innerMesh, shellSurface.minSizing*0.01);
-
+	// shellMesh.exportVTK(fileOut+"o.vtk");
 	shellMesh.exportMESH(fileOut);
 
 
@@ -678,6 +681,15 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 	tetrahedralize(cmd, &shellIn, &shellOut);
 	Mesh midMesh;
 	midMesh.loadTETGENIO(shellOut, true);
+	for(auto tet: innerMesh.tetrahedrons){
+		tet->label = 0;
+	}
+	for(auto tet: midMesh.tetrahedrons){
+		tet->label = 1;
+	}
+	for(auto tet: goalMesh.tetrahedrons){
+		tet->label = 1;
+	}
 
 	midMesh.mergeMesh(innerMesh, 1e-10);
 
@@ -692,7 +704,7 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 
 	goalMesh.exportNodeValues(fileOutHead + ".value");
 	goalMesh.exportMESH(fileOutHead + ".mesh");
-	goalMesh.exportVTK(fileInHead+".vtk");
+	// goalMesh.exportVTK(fileInHead+".vtk");
 	std::cout << "Finish Adaption!\n";
 
 }
