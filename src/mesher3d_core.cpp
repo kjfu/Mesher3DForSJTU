@@ -123,6 +123,9 @@ void delaunayTetrahedralization(const std::string &fileIn, const std::string &fi
 	for(int i=numNodesInsideShell; i<numNodesInsideShell+numNodesOutsideShell; i++){
 		shellMesh.nodes[i]->label = 1;
 	}
+	for( int i=numNodesInsideShell+numNodesOutsideShell; i<shellMesh.nodes.size(); i++){
+		shellMesh.nodes[i]->label = 3;
+	}
 	for(auto &tet: shellMesh.tetrahedrons){
 		tet->label=1;
 	}
@@ -595,11 +598,11 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 	timeend = clock_t();
 	std::cout << "[*************] Insert time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
 
-
+	goalMesh.exportVTK(fileInHead+ ".vtk");
 
 	std::vector<Vector3D> points;
 	for(auto &n: goalMesh.nodes){
-		if(n->label==0){
+		if(n->label==2 || n->label==0){
 			points.emplace_back(n->pos);
 		}
 	}

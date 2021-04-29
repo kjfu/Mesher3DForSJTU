@@ -825,6 +825,7 @@ void Mesh::CavityBasedInsertNode(Tetrahedron *tet, Node *insertNode){
 
     for(auto &f: sFacets){
         Tetrahedron *insertTet = new Tetrahedron(f.sNodes[0], f.sNodes[1], f.sNodes[2], insertNode);
+        insertTet->label = 1;
         insertTet->generateBoundingBox();
         insertTet->generateCircumSphere();
         insertTet->index = tetrahedrons.size();
@@ -1114,7 +1115,7 @@ void Mesh::CavityBasedInsert(std::vector<Vector3D> &positions, bool toRestartRea
         for(auto e:tetrahedrons){
             if (e->boundingBox.contain(pos) && e->contain(pos)){
                 Node *n = new Node(pos);
-                n->label=-1;
+                n->label=3;
                 CavityBasedInsertNode(e, n);
                 break;
             }
