@@ -598,7 +598,7 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 	timeend = clock_t();
 	std::cout << "[*************] Insert time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
 
-	goalMesh.exportVTK(fileInHead+ ".vtk");
+	// innerMesh.exportVTK(fileInHead+ ".vtk");
 
 	std::vector<Vector3D> points;
 	for(auto &n: goalMesh.nodes){
@@ -707,7 +707,7 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 
 	goalMesh.exportNodeValues(fileOutHead + ".value");
 	goalMesh.exportMESH(fileOutHead + ".mesh");
-	goalMesh.exportVTK(fileInHead+".vtk");
+	goalMesh.exportVTK(fileOutHead+".vtk");
 	std::cout << "Finish Adaption!\n";
 
 }
