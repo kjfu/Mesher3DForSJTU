@@ -691,10 +691,10 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 		tet->label = 1;
 	}
 
-	midMesh.mergeMesh(innerMesh, 1e-10);
+	innerMesh.mergeMesh(midMesh, 1e-10);
 
 
-	goalMesh.mergeMesh(midMesh, 1e-10);
+	goalMesh.mergeMesh(innerMesh, 1e-10);
 	
 
 	timebegin= clock();
@@ -704,7 +704,7 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 
 	goalMesh.exportNodeValues(fileOutHead + ".value");
 	goalMesh.exportMESH(fileOutHead + ".mesh");
-	// goalMesh.exportVTK(fileInHead+".vtk");
+	goalMesh.exportVTK(fileInHead+".vtk");
 	std::cout << "Finish Adaption!\n";
 
 }
