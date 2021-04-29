@@ -130,7 +130,7 @@ void delaunayTetrahedralization(const std::string &fileIn, const std::string &fi
 	shellMesh.mergeMesh(innerMesh, shellSurface.minSizing*0.01);
 	// shellMesh.exportVTK(fileOut+"o.vtk");
 	shellMesh.exportMESH(fileOut);
-
+	shellMesh.exportVTK(fileOut+"2vtk.vtk");
 
 
 }
