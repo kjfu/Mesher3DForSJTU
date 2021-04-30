@@ -459,14 +459,29 @@ void Mesh::readyForSpatialSearch(bool toBuildTetKDTree, bool toBuildNodeKDTree, 
 
 }
 
-
+// bool Mesh::searchTetrahedronIntersect(Tetrahedron *keyTet, Tetrahedron* &goalTet){
+//     bool rst = false;
+//     Vector3D pos = keyTet->center().data();
+//     kdres *set = kd_nearest_range(tetKDTree, pos.data(), maxSizing);
+//     while (!kd_res_end(set)){
+//         Tetrahedron *tet = static_cast<Tetrahedron *>(kd_res_item_data(set));
+//         if (tet->boundingBox.intersects(keyTet->boundingBox, 1e-10)){
+//             goalTet = tet;
+//             rst = true;
+//             break;
+//         }
+//         kd_res_next(set);
+//     }
+//     kd_res_free(set);
+//     return rst;
+// }
 
 bool Mesh::searchTetrahedronContain(Vector3D pos, Tetrahedron* &goalTet){
     bool rst = false;
     kdres *set = kd_nearest_range(tetKDTree, pos.data(), maxSizing);
     while (!kd_res_end(set)){
         Tetrahedron *tet = static_cast<Tetrahedron *>(kd_res_item_data(set));
-        if (tet->boundingBox.contain(pos) && tet->contain(pos)){
+        if (tet->boundingBox.contain(pos, 1e-10) && tet->contain(pos, 1e-10)){
             goalTet = tet;
             rst = true;
             break;
@@ -573,16 +588,38 @@ void Mesh::checkBooleanRemove(Mesh &anotherMesh, int outerLayers){
         anotherBox.insert(n->pos);
     }
 
+
+    
     for(auto e: tetrahedrons){
         e->edit = 0;
         for(auto n: e->nodes){
-            if(anotherBox.contain(n->pos)){
+            if(anotherBox.contain(n->pos, 1e-10)){
                 Tetrahedron *goalTet;
                 if (anotherMesh.searchTetrahedronContain(n->pos, goalTet)){
                     e->edit=-1;
                 }
             }
+        }
 
+        if(e->edit == 0){
+            e->generateBoundingBox();
+            for(auto ee: anotherMesh.tetrahedrons){
+                if(e->boundingBox.intersects(ee->boundingBox, 1e-8)){
+                    for(int i=0; i<4; i++){
+                        TriangleFacet ff = ee->facet(i, true);                    
+                        for(int j=0; j<4; j++){
+                            TriangleFacet f = e->facet(j, true);
+                            if(f.testIntersection(ff)){
+                                e->edit=-1;
+                                break;
+                            }
+                        }
+                        if(e->edit==-1){
+                            break;
+                        }
+                    }                    
+                }
+            }
         }
     }
 

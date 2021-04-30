@@ -33,7 +33,7 @@ public:
         }
     }
 
-        void insert(Vector3D &n){
+    void insert(Vector3D &n){
         for(int i=0; i<3; i++){
             if (n[i]>maximum[i]){
                 maximum[i] = n[i];
@@ -65,7 +65,7 @@ public:
 
     bool contain(Vector3D pos, double epsilon = std::numeric_limits<double>::epsilon()){
         for(int i=0; i<3; i++){
-            if(pos[i]>(maximum[i]+epsilon) || (pos[i]<minimum[i]-epsilon)){
+            if(pos[i]>(maximum[i]+epsilon) || pos[i]<(minimum[i]-epsilon)){
                 return false;
             }
         }
@@ -73,8 +73,8 @@ public:
     }
 
 
-    bool intersects(AABBox &another){
-        double tolerance = std::numeric_limits<double>::epsilon();
+    bool intersects(AABBox &another,  double tolerance = std::numeric_limits<double>::epsilon()){
+       
         return (another.maximum[0] >= this->minimum[0] - tolerance 
         && another.minimum[0] <= this->maximum[0] + tolerance
         && another.maximum[1] >= this->minimum[1] - tolerance 

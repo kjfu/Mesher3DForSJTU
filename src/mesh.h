@@ -66,6 +66,13 @@ struct TriangleFacet
         orderedNodeIndices[2] = i2;
         std::sort(orderedNodeIndices.begin(), orderedNodeIndices.end());
     }
+
+    bool testIntersection(TriangleFacet &another){
+        tetgenmesh tet;
+        return tet.tri_tri_inter(this->sNodes[0]->pos.data(), this->sNodes[1]->pos.data(), this->sNodes[2]->pos.data()
+        ,another.sNodes[0]->pos.data(), another.sNodes[1]->pos.data(), another.sNodes[2]->pos.data());
+    }
+    
 };
 
 
@@ -170,7 +177,7 @@ public:
     }
 
 
-    bool contain(Vector3D pos){
+    bool contain(Vector3D pos, double eps = std::numeric_limits<double>::epsilon()){
         static int nodeIndices[4][3]=
         { {1, 3, 2}
         , {0, 2, 3}
@@ -178,7 +185,7 @@ public:
         , {0, 1, 2}};
         bool rst = true;
         for(int i=0; i<4; i++){
-            if (SixTimesTetrahedronVolume(nodes[nodeIndices[i][0]]->pos, nodes[nodeIndices[i][1]]->pos, nodes[nodeIndices[i][2]]->pos, pos)<0){
+            if (SixTimesTetrahedronVolume(nodes[nodeIndices[i][0]]->pos, nodes[nodeIndices[i][1]]->pos, nodes[nodeIndices[i][2]]->pos, pos)<(-eps)){
                 rst = false;
                 break;
             }
@@ -337,6 +344,7 @@ public:
     void readyForSpatialSearch(bool toBuildTetKDTree=true, bool toBuildNodeKDTree = true, bool toEstimateSizing = true);
     bool searchTetrahedronContain(Vector3D pos,  Tetrahedron* &goalTet);
     bool searchTetrahedronContain(Vector3D pos,  Tetrahedron* &goalTet, std::array<double, 4> &weights);
+    bool searchTetrahedronIntersect(Tetrahedron *keyTet, Tetrahedron* &goalTet);
 
     //IO
     void loadMESH(const std::string &filePath);
