@@ -33,7 +33,7 @@ You must keep 3 files in same path, *.mesh, *.remesh, *.value
 ```
 >>mesher3d -rr test3d -hmax 15 -hmin 3
 ````
-the chars after "-r" with no postfix
+the chars after "-rr" with no postfix
 
 -hmax: max size
 
