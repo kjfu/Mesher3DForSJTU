@@ -7,7 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include "common.h"
-
+#include "surfaceMesh.h"
 double SixTimesTetrahedronVolume(Vector3D v0, Vector3D v1, Vector3D v2, Vector3D v3){
     Vector3D a = v0 - v2;
     Vector3D b = v1 - v0;
@@ -120,6 +120,52 @@ void Mesh::extractBorderNodes(std::vector<Node *> &sNodes){
         }
     }
     sNodes.insert(sNodes.end(), nodeSet.begin(), nodeSet.end());
+}
+
+
+void Mesh::extractBorder(SurfaceMesh &aSurface){
+    std::set<Node *> nodeSet; 
+    HashFacetTable facetTable;
+    for(auto e: tetrahedrons){
+        for(int i=0; i<4; i++){
+            TriangleFacet keyFacet = e->facet(i, true);
+            TriangleFacet goalFacet;
+            if (facetTable.search(keyFacet, goalFacet)){
+                facetTable.remove(goalFacet);
+            }
+            else{
+                facetTable.insert(keyFacet);
+            }
+        }
+    }
+	std::unordered_map<Node*, Node*> oldNewNodes;
+	auto getNode
+	=
+	[&oldNewNodes]
+	(Node* key){
+		Node *rst;
+		if(oldNewNodes.find(key)!=oldNewNodes.end()){
+			rst = oldNewNodes[key];
+		}
+		else{
+			rst = new Node(key->pos);
+			rst->label= key->label;
+			oldNewNodes[key] = rst;
+		}
+		return rst;
+	};
+
+    for(auto kv:facetTable.columns){
+        for(auto f: kv.second){
+			TriangleElement *tri = new TriangleElement(getNode(f.sNodes[0]), getNode(f.sNodes[1]), getNode(f.sNodes[2]));
+            aSurface.triangles.push_back(tri);
+        }
+    }
+	for(auto kv: oldNewNodes){
+		aSurface.nodes.push_back(kv.second);
+	}
+
+	aSurface.rebuildIndices();
 }
 
 void Mesh::extractBorder(std::vector<Node *> &sNodes, std::vector<TriangleFacet> &sFacets){

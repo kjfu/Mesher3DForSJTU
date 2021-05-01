@@ -15,7 +15,7 @@ double SixTimesTetrahedronVolume(Vector3D v0, Vector3D v1, Vector3D v2, Vector3D
 class Tetrahedron;
 class TriangleElement;
 struct TriangleFacet;
-
+class SurfaceMesh;
 
 
 
@@ -321,6 +321,7 @@ public:
     void extractBorderNodeIndicesWithLabels(std::vector<int> labels, std::set<int> &nodeIndices);
     void extractBorderNodes(std::vector<Node *> &sNodes);
     void extractBorder(std::vector<Node *> &sNodes, std::vector<TriangleFacet> &sFacets);
+    void extractBorder(SurfaceMesh &aSurface);    
     void deleteLargeScaleTetrahedronsPermanently(std::vector<Tetrahedron *> &delElements);
     void deleteSmallScaleTetrahedronsPermanently(std::vector<Tetrahedron *> &delElements);
     void mergeMesh(Mesh &another, std::vector<Node *> &mergeNodes);// useless

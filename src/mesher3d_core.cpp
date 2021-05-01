@@ -577,6 +577,119 @@ void extractBorder(std::vector<Tetrahedron *>&tets, SurfaceMesh &aSurface){
 	aSurface.rebuildIndices();
 }
 
+void refineMeshV3(const std::string &fileInHead, const std::string &fileOutHead, double hmax, double hmin){
+	Mesh goalMesh;
+	Mesh backgroundMesh;
+	double timebegin, timeend;
+	std::vector<int> refine_elements;
+	std::vector<std::array<double,3>> append_points;
+	goalMesh.loadMESH(fileInHead + ".mesh");
+	loadREMESH(refine_elements, append_points, fileInHead+".remesh");
+	backgroundMesh.clone(goalMesh);
+	backgroundMesh.loadNodeValues(fileInHead + ".value");
+	timebegin= clock();
+	// std::vector<Vector3D> positions;
+	// 	for(auto nt:refine_elements){
+	// 		Vector3D vec = goalMesh.tetrahedrons[nt-1]->center();
+	// 		positions.push_back(vec);
+	// 	}
+	// timebegin = clock_t();
+	// goalMesh.CavityBasedInsert(positions);
+	// timeend = clock_t();
+	// std::cout << "[*************] Insert time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
+	// goalMesh.exportVTK(fileOutHead + ".1.vtk");
+
+	std::vector<Vector3D> points;
+	for(auto &n: goalMesh.nodes){
+		if(n->label==2 || n->label==0){
+			points.emplace_back(n->pos);
+		}
+	}
+	for(auto &p: append_points){
+		points.emplace_back(p[0], p[1], p[2]);
+	}
+
+	tetgenio tmpOut;
+	tetgenio tmpIn;
+	transportVector3dsToTETGENIO(points, tmpIn);
+	Mesh innerMesh;
+	SurfaceMesh surfaceInside;
+	generateConvaxHullFromPointsIn3D(tmpIn, innerMesh, surfaceInside);
+
+	innerMesh.readyForSpatialSearch();
+	// goalMesh.readyForSpatialSearch();
+
+
+
+
+
+
+	SurfaceMesh surfaceOutside;
+	goalMesh.extractBorder(surfaceOutside);
+	surfaceOutside.estimateSizing();
+	surfaceInside.estimateSizing();
+	int numOutside = surfaceOutside.nodes.size();
+	surfaceOutside.addSubSurfaceMesh(surfaceInside);
+	int numInside = surfaceInside.nodes.size();
+
+	tetgenio shellIn;
+	tetgenio shellOut;
+	Mesh shell;
+	surfaceOutside.exportTETGENIO(shellIn);
+
+	shellIn.numberofpointmtrs = 1;
+	shellIn.pointmtrlist = new double[shellIn.numberofpoints];
+	for(int i=0; i<numOutside; i++){
+		shellIn.pointmtrlist[i] = hmax;
+	}
+	for(int i=numOutside; i<numInside+numOutside; i++){
+		shellIn.pointmtrlist[i] = hmin;
+	}
+
+
+	shellIn.numberofholes = 1;
+	Vector3D hole;
+	for(auto n: surfaceInside.nodes){
+		hole+=n->pos;
+	}
+	hole/=surfaceInside.nodes.size();
+	shellIn.holelist = new double[3];
+	shellIn.holelist[0] = hole[0];
+	shellIn.holelist[1] = hole[1];
+	shellIn.holelist[2] = hole[2];
+	char cmd[] = "pqmYQ";
+	tetrahedralize(cmd, &shellIn, &shellOut);
+	Mesh midMesh;
+	midMesh.loadTETGENIO(shellOut, true);
+	for(auto &tet: innerMesh.tetrahedrons){
+		tet->label = 0;
+	}
+	for(auto &tet: midMesh.tetrahedrons){
+		tet->label = 1;
+	}
+
+	
+	for(int i=surfaceOutside.nodes.size(); i<midMesh.nodes.size(); i++){
+		midMesh.nodes[i]->label = 3;
+	}
+
+	innerMesh.mergeMesh(midMesh, 1e-10);
+
+	timeend = clock();
+	std::cout <<"[*************] Remesh time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
+	
+
+	timebegin= clock();
+	backgroundMesh.interpolateNodeValuesForAnotherMesh(innerMesh);
+	timeend = clock();
+	std::cout <<"[*************] Interpolation time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
+
+	innerMesh.exportNodeValues(fileOutHead + ".value");
+	innerMesh.exportMESH(fileOutHead + ".mesh");
+	innerMesh.exportVTK(fileOutHead+".vtk");
+	std::cout << "Finish Adaption!\n";	
+}
+
 void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead, bool beQuiet){
 	Mesh goalMesh;
 	Mesh backgroundMesh;

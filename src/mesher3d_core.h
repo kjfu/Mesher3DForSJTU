@@ -15,7 +15,7 @@ void constrainedTetrahedralization(tetgenio *in, tetgenio *out, REAL size, bool 
 
 void refineMesh(const std::string &fileInHead, const std::string &fileOutHead, bool beQuiet=false);
 void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead, bool beQuiet=false);
-
+void refineMeshV3(const std::string &fileInHead, const std::string &fileOutHead, double hmax, double hmin);
 
 void generatePeriodicBoundaryConditionMesh(const std::string &fileIn, const std::string &fileOut, double size, bool beQuiet=false);
 

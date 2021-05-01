@@ -33,6 +33,8 @@ int main(int argc, char *argv[]){
 
     std::string str;
     REAL size = 0;
+	double hmax;
+	double hmin;
 
 	std::string refineFileHeadIn;
     std::string refineFileHeadOut;
@@ -61,10 +63,24 @@ int main(int argc, char *argv[]){
 			refineFileHeadOut = std::string(argv[i])+"_out";
 			choice = 3;
 		}
+		else if(str == "-rr"){
+			i++;
+			refineFileHeadIn = argv[i];
+			refineFileHeadOut = std::string(argv[i])+"_out";
+			choice = 4;			
+		}
+		else if(str=="-hmin"){
+            i++;
+            hmin = atof(argv[i]);
+		}
+		else if(str=="-hmax"){
+            i++;
+            hmax = atof(argv[i]);
+		}
 		else if(str == "-p"){
 			i++;
 			fileIn = argv[i];
-			choice = 4;
+			choice = 5;
 		}
         else if (str.length()>2){
             
@@ -114,7 +130,10 @@ int main(int argc, char *argv[]){
 	else if (choice == 3){
 		refineMeshV2(refineFileHeadIn, refineFileHeadOut, quiet);
 	}
-	else if(choice == 4){
+	else if (choice == 4){
+		refineMeshV3(refineFileHeadIn, refineFileHeadOut, hmax, hmin);
+	}
+	else if(choice == 5){
 		generatePeriodicBoundaryConditionMesh(fileIn, fileOut, size, quiet);
 	}
 	

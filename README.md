@@ -27,3 +27,14 @@ the chars after "-r" with no postfix
 >>mesher3d -r test3d -q
 ````
 -q quiet mesh generation detials
+
+## 5. To remesh a 3d mesh adaptively(with outer mesh regeneration) 
+You must keep 3 files in same path, *.mesh, *.remesh, *.value
+```
+>>mesher3d -rr test3d -hmax 15 -hmin 3
+````
+the chars after "-r" with no postfix
+
+-hmax: max size
+
+-hmin: min size 
