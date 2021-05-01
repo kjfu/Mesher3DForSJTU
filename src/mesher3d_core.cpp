@@ -640,10 +640,10 @@ void refineMeshV3(const std::string &fileInHead, const std::string &fileOutHead,
 	shellIn.numberofpointmtrs = 1;
 	shellIn.pointmtrlist = new double[shellIn.numberofpoints];
 	for(int i=0; i<numOutside; i++){
-		shellIn.pointmtrlist[i] = hmax;
+		shellIn.pointmtrlist[i] = hmax>0? hmax:surfaceOutside.minSizing;
 	}
 	for(int i=numOutside; i<numInside+numOutside; i++){
-		shellIn.pointmtrlist[i] = hmin;
+		shellIn.pointmtrlist[i] = hmin>0? hmin:surfaceInside.minSizing;
 	}
 
 
