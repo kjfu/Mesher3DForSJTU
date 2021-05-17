@@ -1131,7 +1131,8 @@ void Mesh::estimateSizing(){
 void Mesh::exportNodeValues(const std::string &filePath){
     std::ofstream file(filePath);
     for(int i=0; i<scalarValueNames.size(); i++){
-        file << "scalar " << scalarValueNames[i] << std::endl;    
+        file << "scalar " << scalarValueNames[i] << std::endl;
+        file << nodes.size() << std::endl;    
         for (auto n: nodes){
             file << n->scalarValues[i] << std::endl;
         }
@@ -1139,6 +1140,7 @@ void Mesh::exportNodeValues(const std::string &filePath){
 
     for(int i=0; i<vectorValueNames.size(); i++){
         file << "vector " << vectorValueNames[i] << std::endl;    
+        file << nodes.size() << std::endl;
         for (auto n: nodes){
         file << n->vectorValues[i][0] << "  "<<n->vectorValues[i][1] << "  " << n->vectorValues[i][2] << std::endl;
         }
