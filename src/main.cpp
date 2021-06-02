@@ -33,7 +33,7 @@ int main(int argc, char *argv[]){
 
     std::string str;
     REAL size = 0;
-	double hmax =-1;
+	double hmax = -1;
 	double hmin = -1;
 
 	std::string refineFileHeadIn;
