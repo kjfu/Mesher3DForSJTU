@@ -1055,6 +1055,478 @@ void resetPoints(tetgenio &tet, Vector3D pMax, Vector3D pMin, std::vector<int> &
 	tet.pointlist[3*indexOf1[7]+2] = pMin[2];
 
 }
+void parseZHandleV2(SurfaceMesh &zHandleSurface, Vector3D xyzmax, Vector3D xyzmin, Vector3D oxyzmax, Vector3D oxyzmin, double size, Mesh &meshOut){
+
+    std::vector<std::array<Node *, 2>> topEdges;
+    std::vector<std::array<Node *, 2>> bottomEdges;
+	
+	zHandleSurface.rebuildTriangleAdjacency();
+
+
+	for (auto &n: zHandleSurface.nodes){
+		if (abs(n->pos[2]-oxyzmax[2])<1e-13){
+			n->edit = 1;
+		}
+		else if(abs(n->pos[2]-oxyzmin[2])<1e-13){
+			n->edit = 2;
+		}
+		else{
+			n->edit = 0;
+		}
+	}
+	std::vector<TriangleElement *> delTriangles;
+	for (auto &t: zHandleSurface.triangles){
+		int count1 = 0;
+		int count2 = 0;
+		t->edit = 0;
+		for(auto n: t->nodes){
+			if (n->edit==1){
+				count1++;
+			}
+			else if(n->edit==2){
+				count2++;
+			}
+		}
+		if(count1==3){
+			t->edit = 1;
+			delTriangles.push_back(t);
+		}
+		
+		else if (count2==3){
+			t->edit = 2;
+			delTriangles.push_back(t);
+		}
+	}
+	for(auto &t: delTriangles){
+		for(int i=0; i<3; i++){
+
+			TriangleElement *tt = t->adjacentTriangles[i][0];
+			if (tt->edit==0){
+
+				if (t->edit==1){
+					topEdges.push_back({t->nodes[(i+1)%3],  t->nodes[(i+2)%3]});
+				}
+				else{
+					bottomEdges.push_back({t->nodes[(i+1)%3], t->nodes[(i+2)%3]});						
+				}
+			}
+		}			
+	}
+	std::vector<Node *> topNodesList;
+	std::vector<Node *> bottomNodesList;
+
+
+	auto clearNodes = []
+	(std::vector<std::array<Node *, 2>> &edges, std::vector<Node*> &nodesList){
+		std::vector<bool> checked(edges.size(), false);
+		while (nodesList.size() != edges.size()){
+			if (nodesList.empty()){
+				nodesList.push_back(edges[0][1]);
+			}
+			checked[0] = true; 
+			for(int i=1; i<edges.size(); i++){
+				if(!checked[i]){
+					if(edges[i][0] == nodesList.back()){
+						nodesList.push_back(edges[i][1]);
+						checked[i] = true;					
+					}
+					else if(edges[i][1] == nodesList.back()){
+						nodesList.push_back(edges[i][0]);
+						checked[i] = false;
+					}					
+				}
+
+
+			}
+		}
+	};
+
+
+	clearNodes(topEdges, topNodesList);
+	clearNodes(bottomEdges, bottomNodesList);
+
+	zHandleSurface.deleteTriangles(delTriangles);
+
+	
+	zHandleSurface.estimateSizing();
+	if (size==-1){
+		size = zHandleSurface.maxSizing * 10;
+	}
+	//Generate tetgenio
+	tetgenio in, out;
+	int baseNodesIndex = zHandleSurface.nodes.size()*3;
+	int numInnerNodes = zHandleSurface.nodes.size();
+	int numInnerFacets = zHandleSurface.triangles.size();
+	in.numberoffacets = zHandleSurface.triangles.size() + 6;
+	in.firstnumber = 0;
+	in.facetlist = new tetgenio::facet[in.numberoffacets];
+	in.facetmarkerlist = new int[in.numberoffacets];
+	in.numberofpoints = zHandleSurface.nodes.size() + 8;
+	in.pointlist = new double[3*in.numberofpoints];
+	in.pointmtrlist = new double[in.numberofpoints];
+	in.pointmarkerlist = new int[in.numberofpoints];
+	in.numberofpointmtrs = 1;
+	in.numberofholes = 1;
+	in.holelist = new double[3];
+	for (int i=0; i<zHandleSurface.nodes.size(); i++){
+		int base = i*3;
+		in.pointlist[base] = zHandleSurface.nodes[i]->pos[0];
+		in.pointlist[base+1] = zHandleSurface.nodes[i]->pos[1];
+		in.pointlist[base+2] = zHandleSurface.nodes[i]->pos[2];
+		in.pointmtrlist[i] = zHandleSurface.maxSizing;
+		in.pointmarkerlist[i] = 2;
+	}
+
+	in.pointlist[baseNodesIndex+0]  = xyzmin[0]; in.pointlist[baseNodesIndex+1]  = xyzmin[1]; in.pointlist[baseNodesIndex+2]  = xyzmin[2];
+	in.pointlist[baseNodesIndex+3]  = xyzmax[0]; in.pointlist[baseNodesIndex+4]  = xyzmin[1]; in.pointlist[baseNodesIndex+5]  = xyzmin[2];
+	in.pointlist[baseNodesIndex+6]  = xyzmax[0]; in.pointlist[baseNodesIndex+7]  = xyzmax[1]; in.pointlist[baseNodesIndex+8]  = xyzmin[2];
+	in.pointlist[baseNodesIndex+9]  = xyzmin[0]; in.pointlist[baseNodesIndex+10] = xyzmax[1]; in.pointlist[baseNodesIndex+11] = xyzmin[2];
+	in.pointlist[baseNodesIndex+12] = xyzmin[0]; in.pointlist[baseNodesIndex+13] = xyzmin[1]; in.pointlist[baseNodesIndex+14] = xyzmax[2];
+	in.pointlist[baseNodesIndex+15] = xyzmax[0]; in.pointlist[baseNodesIndex+16] = xyzmin[1]; in.pointlist[baseNodesIndex+17] = xyzmax[2];
+	in.pointlist[baseNodesIndex+18] = xyzmax[0]; in.pointlist[baseNodesIndex+19] = xyzmax[1]; in.pointlist[baseNodesIndex+20] = xyzmax[2];
+	in.pointlist[baseNodesIndex+21] = xyzmin[0]; in.pointlist[baseNodesIndex+22] = xyzmax[1]; in.pointlist[baseNodesIndex+23] = xyzmax[2];
+
+	for(int i=0; i<8; i++){
+		in.pointmtrlist[numInnerNodes+i] = size;		
+		in.pointmarkerlist[numInnerNodes+i] = 1;
+	}
+
+	static int faceIndices[6][4]={
+		{0, 1, 2, 3},
+		{4, 5, 6, 7},
+		{1, 2, 6, 5},
+		{2, 3, 7, 6},
+		{0, 3, 7, 4},
+		{1, 0, 4, 5}};
+	for(int i=0; i<zHandleSurface.triangles.size(); i++){
+		in.facetmarkerlist[i] = 2;
+        tetgenio::facet *f = &in.facetlist[i];
+        f->numberofpolygons = 1;
+        f->polygonlist = new tetgenio::polygon[f->numberofpolygons];
+        f->numberofholes = 0;
+        f->holelist = nullptr;
+        tetgenio::polygon *p = &f->polygonlist[0];
+        p->numberofvertices = 3;
+        p->vertexlist = new int[p->numberofvertices];
+        p->vertexlist[0] = zHandleSurface.triangles[i]->nodes[0]->index;
+        p->vertexlist[1] = zHandleSurface.triangles[i]->nodes[1]->index;
+        p->vertexlist[2] = zHandleSurface.triangles[i]->nodes[2]->index;	
+	}
+
+	//top
+	in.facetmarkerlist[numInnerFacets] = 1;
+	tetgenio::facet *f = &in.facetlist[numInnerFacets];
+	f->numberofpolygons = 2;
+	f->polygonlist = new tetgenio::polygon[f->numberofpolygons];
+	f->numberofholes = 1;
+	f->holelist = new double[3];
+	tetgenio::polygon *p1 = &f->polygonlist[0];
+	p1->numberofvertices = 4;
+    p1->vertexlist = new int[p1->numberofvertices];	
+	for(int i=0; i<4; i++){
+		p1->vertexlist[i] = faceIndices[1][i]+numInnerNodes;
+	}
+	tetgenio::polygon *p2 = &f->polygonlist[1];
+	p2->numberofvertices = topNodesList.size();
+    p2->vertexlist = new int[p2->numberofvertices];	
+	for(int i=0; i<p2->numberofvertices; i++){
+		p2->vertexlist[i] = topNodesList[i]->index;
+	}
+	Vector3D holeCenter((oxyzmax[0]+oxyzmin[0])/2.0, (oxyzmax[1]+oxyzmin[1])/2.0, oxyzmax[2]);
+	f->holelist[0] = holeCenter[0];
+	f->holelist[1] = holeCenter[1];
+	f->holelist[2] = holeCenter[2];
+
+	//bottom	
+	in.facetmarkerlist[numInnerFacets+1] = 1;
+	f = &in.facetlist[numInnerFacets+1];
+	f->numberofpolygons = 2;
+	f->polygonlist = new tetgenio::polygon[f->numberofpolygons];
+	f->numberofholes = 1;
+	f->holelist = new double[3];
+	p1 = &f->polygonlist[0];
+	p1->numberofvertices = 4;
+    p1->vertexlist = new int[p1->numberofvertices];	
+	for(int i=0; i<4; i++){
+		p1->vertexlist[i] = faceIndices[0][i]+numInnerNodes;
+	}
+	p2 = &f->polygonlist[1];
+	p2->numberofvertices = bottomNodesList.size();
+    p2->vertexlist = new int[p2->numberofvertices];	
+	for(int i=0; i<p2->numberofvertices; i++){
+		p2->vertexlist[i] = bottomNodesList[i]->index;
+	}
+	Vector3D holeCenter2((oxyzmax[0]+oxyzmin[0])/2.0, (oxyzmax[1]+oxyzmin[1])/2.0, oxyzmin[2]);
+	f->holelist[0] = holeCenter2[0];
+	f->holelist[1] = holeCenter2[1];
+	f->holelist[2] = holeCenter2[2];	
+
+	//left & right & back & front
+	for(int i=2; i<6; i++){
+		in.facetmarkerlist[numInnerFacets+i] = 1;
+		tetgenio::facet *f = &in.facetlist[numInnerFacets+i];
+		f->numberofpolygons = 1;
+		f->polygonlist = new tetgenio::polygon[f->numberofpolygons];
+		f->numberofholes = 0;
+        f->holelist = nullptr;
+		tetgenio::polygon *p = &f->polygonlist[0];
+		p->numberofvertices = 4;
+		p->vertexlist = new int[p1->numberofvertices];	
+		for(int j=0; j<4; j++){
+			p->vertexlist[j] = faceIndices[i][j]+numInnerNodes;
+		}	
+	}
+
+	Vector3D handleHole = Vector3D((xyzmax[0]+xyzmin[0])/2.0, (xyzmax[1]+xyzmin[1])/2.0, (xyzmin[2]+xyzmax[2])/2.0);
+	in.holelist[0] = handleHole[0];
+	in.holelist[1] = handleHole[1];
+	in.holelist[2] = handleHole[2];
+
+	char cmd[] = "pqmfDQ";
+	tetrahedralize(cmd, &in, &out);
+	meshOut.loadTETGENIO(out, true);
+	int numTriFacets = out.numberoftrifaces;
+	for(auto &n: meshOut.nodes){
+		n->label = 3;
+	}
+	for (int i=0; i<numTriFacets; i++){
+		if (out.trifacemarkerlist[i]==1){
+			int base = i*3;
+			meshOut.nodes[out.trifacelist[base]]->label = 1;
+			meshOut.nodes[out.trifacelist[base+1]]->label = 1;
+			meshOut.nodes[out.trifacelist[base+2]]->label = 1;
+		}
+	}
+	for(auto &t: meshOut.tetrahedrons){
+		t->label = 1;
+	}
+}
+void parseZHandle(SurfaceMesh &zHandleSurface, double top, double bottom, 
+	std::vector<std::array<double, 2>> &topEdgeNodes,	
+    std::vector<std::array<double, 2>> &bottomEdgeNodes,
+    std::vector<std::array<int, 2>> &topEdges, 
+    std::vector<std::array<int, 2>> &bottomEdges){
+	
+	zHandleSurface.rebuildTriangleAdjacency();
+	std::unordered_map<int, int> topNodeMap;
+	std::unordered_map<int, int> bottomNodeMap;
+	int topIndex = 0;
+	int bottomIndex = 0;
+	auto getTopNode =
+	[&zHandleSurface, &topEdgeNodes, &topNodeMap, &topIndex]
+	(int index){
+		int rst = 0;
+		if(topNodeMap.count(index)){
+			rst = topNodeMap[index];
+		}
+		else{
+			rst = topIndex++;
+			topNodeMap[index]  = rst;
+			topEdgeNodes.push_back({zHandleSurface.nodes[index]->pos[0], zHandleSurface.nodes[index]->pos[1]});
+		}
+		return rst;
+	};
+	auto getBottomNode =
+	[&zHandleSurface, &bottomEdgeNodes, &bottomNodeMap, &bottomIndex]
+	(int index){
+		int rst = 0;
+		if(bottomNodeMap.count(index)){
+			rst = bottomNodeMap[index];
+		}
+		else{
+			rst = bottomIndex++;
+			bottomNodeMap[index]  = rst;
+			bottomEdgeNodes.push_back({zHandleSurface.nodes[index]->pos[0], zHandleSurface.nodes[index]->pos[1]});
+		}
+		return rst;
+	};
+	for (auto &n: zHandleSurface.nodes){
+		if (abs(n->pos[2]-top)<1e-13){
+			n->edit = 1;
+		}
+		else if(abs(n->pos[2]-bottom)<1e-13){
+			n->edit = 2;
+		}
+		else{
+			n->edit = 0;
+		}
+	}
+	std::vector<TriangleElement *> delTriangles;
+	for (auto &t: zHandleSurface.triangles){
+		int count1 = 0;
+		int count2 = 0;
+		t->edit = 0;
+		for(auto n: t->nodes){
+			if (n->edit==1){
+				count1++;
+			}
+			else if(n->edit==2){
+				count2++;
+			}
+		}
+		if(count1==3){
+			t->edit = 1;
+			delTriangles.push_back(t);
+		}
+		else if (count2==3){
+			t->edit = 2;
+			delTriangles.push_back(t);
+		}
+	}
+	for(auto &t: zHandleSurface.triangles){
+		if (t->edit){
+			for(int i=0; i<3; i++){
+				TriangleElement *tt = t->adjacentTriangles[i][0];
+				if (tt->edit==0){
+
+					if (t->edit==1){
+						topEdges.push_back({getTopNode(t->nodes[(i+1)%3]->index), getTopNode(t->nodes[(i+2)%3]->index)});
+					}
+					else{
+						bottomEdges.push_back({getBottomNode(t->nodes[(i+1)%3]->index), getBottomNode(t->nodes[(i+2)%3]->index)});						
+					}
+				}
+			}			
+		}
+	}
+	zHandleSurface.deleteTriangles(delTriangles);
+
+}
+
+void generateZHandleMeshV2(const std::string &fileIn, const std::string &fileOut, double size, bool beQuiet){
+	Mesh goalMesh;
+	Vector3D xyzmin;
+	Vector3D xyzmax;
+	Vector3D oxyzmin;
+	Vector3D oxyzmax;
+	tetgenio tetIn;
+	std::vector<int> indexOf1;
+	loadNodesWithLabel(tetIn, fileIn, xyzmax, xyzmin, oxyzmax, oxyzmin, indexOf1);
+
+	if(indexOf1.size()!=8){
+		std::cout << "Missing bounding box nodes!" << std::endl;
+		exit(1);
+	}
+
+	Vector3D deltaPos(oxyzmax[0] - oxyzmin[0], oxyzmax[1] - oxyzmin[1], oxyzmax[2] - oxyzmin[2]);
+	resetPoints(tetIn, oxyzmax+deltaPos, oxyzmin-deltaPos, indexOf1);
+	Mesh innerMesh;
+	SurfaceMesh interSurface;
+	generateConvaxHullFromPointsIn3D(tetIn, oxyzmax, oxyzmin, innerMesh, interSurface);
+	for(auto &t: innerMesh.tetrahedrons){
+		t->label = 0;
+	}
+	innerMesh.rebuildTetrahedronsAdjacency();
+	for(auto n: innerMesh.nodes){
+		n->label = 0;
+	}
+	for(auto t: innerMesh.tetrahedrons){
+		for (int i=0; i<4; i++){
+			if (!t->adjacentTetrahedrons[i]){
+				TriangleFacet f = t->facet(i, true);
+				for(auto n: f.sNodes){
+					n->label = 2;
+				}
+			}
+		}
+	}
+	
+	Mesh out;
+	parseZHandleV2(interSurface, xyzmax, xyzmin, oxyzmax, oxyzmin, size, out);
+	innerMesh.mergeMesh(out, 1e-10);
+	innerMesh.exportMESH(fileOut);
+	innerMesh.exportVTK(fileOut+".vtk");
+}
+
+void generateZHandleMesh(const std::string &fileIn, const std::string &fileOut, double size, bool beQuiet){
+	Mesh goalMesh;
+	Vector3D xyzmin;
+	Vector3D xyzmax;
+	Vector3D oxyzmin;
+	Vector3D oxyzmax;
+	tetgenio tetIn;
+	std::vector<int> indexOf1;
+	loadNodesWithLabel(tetIn, fileIn, xyzmax, xyzmin, oxyzmax, oxyzmin, indexOf1);
+
+	if(indexOf1.size()!=8){
+		std::cout << "Missing bounding box nodes!" << std::endl;
+		exit(1);
+	}
+
+	Vector3D deltaPos(oxyzmax[0] - oxyzmin[0], oxyzmax[1] - oxyzmin[1], oxyzmax[2] - oxyzmin[2]);
+	resetPoints(tetIn, oxyzmax+deltaPos, oxyzmin-deltaPos, indexOf1);
+	Mesh innerMesh;
+	SurfaceMesh interSurface;
+	generateConvaxHullFromPointsIn3D(tetIn, oxyzmax, oxyzmin, innerMesh, interSurface);
+
+	std::vector<std::array<int, 2>> bottomEdges;
+	std::vector<std::array<double, 2>> bottomEdgeNodes;
+	std::vector<std::array<int, 2>> topEdges;
+	std::vector<std::array<double, 2>> topEdgeNodes;
+	parseZHandle(interSurface, oxyzmax[2], oxyzmin[2], topEdgeNodes, bottomEdgeNodes, topEdges, bottomEdges);
+
+	//Generate outer surface mesh	
+	SurfaceMesh faceBottom, faceTop, faceFront, faceBack, faceLeft, faceRight;
+	std::array<double, 2> oxymax({oxyzmax[0], oxyzmax[1]});
+	std::array<double, 2> oxymin({oxyzmin[0], oxyzmin[1]});
+
+
+	generateRectangle({xyzmax[0],xyzmax[1]},{xyzmin[0], xyzmin[1]}, size, bottomEdgeNodes, bottomEdges);
+	generateRectangle({xyzmax[0],xyzmax[1]},{xyzmin[0], xyzmin[1]}, size, topEdgeNodes, topEdges);
+	std::vector<std::array<double,2>> holes;
+	holes.push_back({0.5*(oxymax[0]+oxymin[0]), 0.5*(oxymax[1]+oxymin[1])});
+	triangulateio triBottom;
+	triangulateio triTop;	
+	generateMeshInPlaneWithEdges(bottomEdgeNodes, bottomEdges, holes, size*size/2, triBottom);
+	generateMeshInPlaneWithEdges(topEdgeNodes, topEdges, holes, size*size/2, triTop);
+
+	faceBottom.projectTRIANGULATEIO(triBottom, PROJECTION_TYPE::XY_PLANE, xyzmin[2]);
+	faceTop.projectTRIANGULATEIO(triTop, PROJECTION_TYPE::XY_PLANE, xyzmax[2]);
+	deleteTRIANGULATEIOAllocatedArrays(triBottom);
+	deleteTRIANGULATEIOAllocatedArrays(triTop);
+
+
+	bottomEdgeNodes.clear();
+	bottomEdges.clear();
+	holes.clear();
+	generateRectangle({xyzmax[1], xyzmax[2]}, {xyzmin[1],xyzmin[2]}, size, bottomEdgeNodes, bottomEdges);
+	triangulateio triFrontBack;	
+	generateMeshInPlaneWithEdges(bottomEdgeNodes, bottomEdges, holes, size*size/2, triFrontBack);
+	faceFront.projectTRIANGULATEIO(triFrontBack, PROJECTION_TYPE::YZ_PLANE, xyzmax[0]);
+	faceBack.projectTRIANGULATEIO(triFrontBack, PROJECTION_TYPE::YZ_PLANE, xyzmin[0]);
+	deleteTRIANGULATEIOAllocatedArrays(triFrontBack);
+
+	bottomEdgeNodes.clear();
+	bottomEdges.clear();
+	holes.clear();
+	generateRectangle({xyzmax[2], xyzmax[0]}, {xyzmin[2],xyzmin[0]}, size, bottomEdgeNodes, bottomEdges);
+	triangulateio triLeftRight;	
+	generateMeshInPlaneWithEdges(bottomEdgeNodes, bottomEdges, holes, size*size/2, triLeftRight);
+	faceRight.projectTRIANGULATEIO(triLeftRight, PROJECTION_TYPE::ZX_PLANE, xyzmax[1]);
+	faceLeft.projectTRIANGULATEIO(triLeftRight, PROJECTION_TYPE::ZX_PLANE, xyzmin[1]);
+	deleteTRIANGULATEIOAllocatedArrays(triLeftRight);
+
+
+
+
+
+	interSurface.mergeSurfaceMesh(faceRight,1e-10);
+	interSurface.mergeSurfaceMesh(faceLeft,1e-10);
+	interSurface.mergeSurfaceMesh(faceFront,1e-10);
+	interSurface.mergeSurfaceMesh(faceBack,1e-10);
+	interSurface.mergeSurfaceMesh(faceTop,1e-10);	
+	interSurface.mergeSurfaceMesh(faceBottom,1e-10);
+
+	tetgenio tetLoop;
+	interSurface.exportTETGENIO(tetLoop);
+	tetLoop.numberofholes = 1;
+	tetLoop.holelist = new double[3];
+
+	interSurface.exportVTK("/home/kjfu/research/Mesher3DForSJTU/examples/periodic/dislocation_out.vtk");
+
+	return;
+	// goalMesh.exportMESH(fileOut);
+}
 
 
 void generatePeriodicBoundaryConditionMesh(const std::string &fileIn, const std::string &fileOut, double size, bool beQuiet){
@@ -1078,7 +1550,6 @@ void generatePeriodicBoundaryConditionMesh(const std::string &fileIn, const std:
 	SurfaceMesh interSurface;
 	generateConvaxHullFromPointsIn3D(tetIn, oxyzmax, oxyzmin, innerMesh, interSurface);
 	return;
-
 	std::vector<std::array<double, 2>> planeNodes;
 	for(int i=0; i<tetIn.numberofpoints; i++){
 		if (abs(tetIn.pointlist[i*3+2] - xyzmin[2]) < 1e-13){
@@ -1416,7 +1887,7 @@ void generateMeshInPlaneWithEdges(std::vector<std::array<double,2>> &planeNodes,
 	}
 
 
-	std::string str = "pqQa"+std::to_string(maxAreaSize);
+	std::string str = "pq25Qa"+std::to_string(maxAreaSize);
 	char cmd[256];
 	strcpy(cmd, str.c_str());
 	triangulate(cmd, &triIn, &triOut, nullptr);

@@ -77,7 +77,7 @@ int main(int argc, char *argv[]){
             i++;
             hmax = atof(argv[i]);
 		}
-		else if(str == "-p"){
+		else if(str == "-hd"){
 			i++;
 			fileIn = argv[i];
 			choice = 5;
@@ -105,11 +105,11 @@ int main(int argc, char *argv[]){
     }
 
 	//TEST
-	// choice = 3;
+	// choice = 5;
 	// quiet = true;
 	// size = 15;
 	// fileIn = "/home/kjfu/research/Mesher3DForSJTU/examples/bugCase/20210428/cp.mesh";
-	// fileOut = "/home/kjfu/research/Mesher3DForSJTU/examples/bugCase/20210428/output.mesh";
+	// fileIn = "C:\\Users\\Fu Kejie\\Desktop\\workspace\\Mesher3DForSJTU\\examples\\periodic\\dislocation.mesh";
 	// refineFileHeadIn = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d";
 	// refineFileHeadOut = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d_out";
 	//TEST
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]){
 		refineMeshV3(refineFileHeadIn, refineFileHeadOut, hmax, hmin);
 	}
 	else if(choice == 5){
-		generatePeriodicBoundaryConditionMesh(fileIn, fileOut, size, quiet);
+		generateZHandleMeshV2(fileIn, fileOut, size, quiet);
 	}
 	
     return 0;

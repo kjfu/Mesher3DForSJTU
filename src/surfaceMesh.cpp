@@ -532,7 +532,7 @@ void SurfaceMesh::mergeSurfaceMesh(SurfaceMesh &another, double tolerance){
 
         }
         else{
-            Node *nn = new Node();
+            Node *nn = new Node(*n);
             nn->label = n->label;
             addNodes.push_back(nn);
             nodeMap[n]= nn;
