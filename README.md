@@ -43,7 +43,7 @@ the chars after "-rr" with no postfix
 ### 1.5 To remesh a 3d mesh with a handle atomic area
 
 ```
->>mesher3d -hd test3d -s 15 -o out.3d
+>>mesher3d -hd test3d.mesh -s 15 -o out.3d
 ````
 -s sizing
 
