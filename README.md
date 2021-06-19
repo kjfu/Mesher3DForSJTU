@@ -45,8 +45,9 @@ the chars after "-rr" with no postfix
 ```
 >>mesher3d -hd test3d -s 15 -o out.3d
 ````
-the chars after "-rr" with no postfix
+-s sizing
 
+-o filename
 
 ## 2 Remark
 ### 2.1 Labels for nodes
