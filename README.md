@@ -47,9 +47,6 @@ the chars after "-rr" with no postfix
 ````
 the chars after "-rr" with no postfix
 
--hmax: max size
-
--hmin: min size 
 
 ## 2 Remark
 ### 2.1 Labels for nodes
