@@ -11,6 +11,17 @@
 #include "surfaceMesh.h"
 #include "hashFacet.h"
 
+
+void generateConvexHull(const std::string &fileIn, const std::string &fileOut){
+	tetgenio in, out;
+	loadMesh(&in, fileIn);
+	char cmd[] ="Q";
+	tetrahedralize(cmd, &in, &out);
+	saveAsMESH(&out, fileOut);
+}
+
+
+
 void generateBoundingBoxTETGENIO(tetgenio &tetIn, Vector3D xyzmax, Vector3D xyzmin, double size, tetgenio &tetOut){
 
 	tetIn.firstnumber=0;

@@ -1,3 +1,4 @@
+
 # Mesher3DForSJTU
 
 ## 1 Usage
@@ -9,7 +10,7 @@
 -s sizing: to set the maximum scalar sizing of the mesh(equals to the maximum edge length)  
 -o filename: to set the name of the output *.mesh file
 
-### 1.2 To generate 3d mesh from points
+### 1.2 To generate 3d mesh from points（with 8 points as bounding points with marker 1, and several points with marker 0）
 ```
 >> mesher3d -s 5 sample.mesh -o outmesh.mesh
 ```
@@ -48,7 +49,12 @@ the chars after "-rr" with no postfix
 -s sizing
 
 -o filename
+### 1.6 To generate convex hull from points
 
+```
+>>mesher3d -ch test3d.mesh  -o out.3d
+````
+-s sizing
 ## 2 Remark
 ### 2.1 Labels for nodes
 

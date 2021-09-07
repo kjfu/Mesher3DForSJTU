@@ -6,7 +6,7 @@
 #include "surfaceMesh.h"
 
 
-
+void generateConvexHull(const std::string &fileIn, const std::string &fileOut);
 void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vector<int> &tetMarkers, bool beQuiet=false);//useless
 void delaunayTetrahedralization(const std::string &fileIn, const std::string &fileOut, double size, bool beQuiet=false);
 

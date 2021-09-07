@@ -82,6 +82,11 @@ int main(int argc, char *argv[]){
 			fileIn = argv[i];
 			choice = 5;
 		}
+		else if(str == "-ch"){
+			i++;
+			fileIn = argv[i];
+			choice = 6;
+		}
         else if (str.length()>2){
             
 			if (str.find(".poly") != std::string::npos){
@@ -135,6 +140,9 @@ int main(int argc, char *argv[]){
 	}
 	else if(choice == 5){
 		generateZHandleMeshV2(fileIn, fileOut, size, quiet);
+	}
+	else if(choice == 6){
+		generateConvexHull(fileIn, fileOut);
 	}
 	
     return 0;
