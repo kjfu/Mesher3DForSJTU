@@ -44,7 +44,7 @@ the chars after "-rr" with no postfix
 ### 1.5 To remesh a 3d mesh with a handle atomic area
 
 ```
->>mesher3d -hd test3d.mesh -s 15 -o out.3d
+>>mesher3d -hd test3d.mesh -s 15 -o out3d.mesh
 ````
 -s sizing
 
@@ -52,9 +52,9 @@ the chars after "-rr" with no postfix
 ### 1.6 To generate convex hull from points
 
 ```
->>mesher3d -ch test3d.mesh  -o out.3d
+>>mesher3d -ch test3d.mesh  -o out3d.mesh
 ````
--s sizing
+
 ## 2 Remark
 ### 2.1 Labels for nodes
 
