@@ -52,7 +52,7 @@ the chars after "-rr" with no postfix
 ### 1.5 To remesh a 3d mesh with a handle atomic area
 
 ```
->>mesher3d -hd test3d.mesh -s 15 -o out.3d
+>>mesher3d -hd test3d.mesh -s 15 -o out3d.mesh
 ````
 -s sizing
 
@@ -61,8 +61,9 @@ the chars after "-rr" with no postfix
 ### 1.6 To generate convex hull from points
 
 ```
->>mesher3d -ch test3d.mesh  -o out.3d
+>>mesher3d -ch test3d.mesh  -o out3d.mesh
 ````
+<<<<<<< HEAD
 -s sizing
 
 ### 1.7 To generate 3d mesh from points, delete holes（with 8 points as bounding points with marker 1, and several points with marker 0）
@@ -71,6 +72,9 @@ the chars after "-rr" with no postfix
 ```
 -s sizing: to set the maximum scalar sizing of the mesh(equals to the maximum edge length, regardless the points with marker 0)  
 -o filename: to set the name of the output *.mesh file
+=======
+
+>>>>>>> f088d56870d3bd90aa43e46ae5b7afa15d7c0e9a
 ## 2 Remark
 ### 2.1 Labels for nodes
 
