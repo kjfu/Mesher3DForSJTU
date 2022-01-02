@@ -63,7 +63,6 @@ the chars after "-rr" with no postfix
 ```
 >>mesher3d -ch test3d.mesh  -o out3d.mesh
 ````
-<<<<<<< HEAD
 -s sizing
 
 ### 1.7 To generate 3d mesh from points, delete holes（with 8 points as bounding points with marker 1, and several points with marker 0）
@@ -72,8 +71,6 @@ the chars after "-rr" with no postfix
 ```
 -s sizing: to set the maximum scalar sizing of the mesh(equals to the maximum edge length, regardless the points with marker 0)  
 -o filename: to set the name of the output *.mesh file 
-=======
-
 
 ## 2 Remark
 ### 2.1 Labels for nodes
