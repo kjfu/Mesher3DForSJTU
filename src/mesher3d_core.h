@@ -1,3 +1,11 @@
+/*
+ * @Author: Kejie Fu
+ * @Date: 2021-09-07 21:09:25
+ * @LastEditTime: 2021-12-30 21:55:03
+ * @LastEditors: Kejie Fu
+ * @Description: 
+ * @FilePath: /Mesher3DForSJTU/src/mesher3d_core.h
+ */
 #pragma once
 #include "tetgen.h"
 #include <vector>
@@ -9,6 +17,7 @@
 void generateConvexHull(const std::string &fileIn, const std::string &fileOut);
 void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vector<int> &tetMarkers, bool beQuiet=false);//useless
 void delaunayTetrahedralization(const std::string &fileIn, const std::string &fileOut, double size, bool beQuiet=false);
+void delaunayTetrahedralizationWithHoles(const std::string &fileIn, const std::string &fileOut, double size, bool beQuiet=false);
 
 void constrainedTetrahedralization(tetgenio *in, tetgenio *out, REAL size, bool beQuiet=false);
 
@@ -41,6 +50,7 @@ void generateConvaxHullFromPointsInPlane(std::vector<std::array<double, 2>> &pla
 
 void generateConvaxHullFromPointsIn3D(tetgenio &tet, Vector3D &oxyzmax, Vector3D &oxyzmin, Mesh &goalMesh, SurfaceMesh &goalSurface);
 void generateConvaxHullFromPointsIn3D(tetgenio &tet, Mesh &goalMesh, SurfaceMesh &goalSurface);
+void generateConvaxHullFromPointsIn3DRemoveHoles(tetgenio &tet, Mesh &goalMesh, SurfaceMesh &goalSurface);
 void resetPoints(tetgenio &tet, Vector3D pMax, Vector3D pMin, std::vector<int> &indexOf1);
 
 void extractBorder(std::vector<Tetrahedron *>&tets, SurfaceMesh &aSurface);

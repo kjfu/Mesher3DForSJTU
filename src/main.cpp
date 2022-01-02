@@ -87,6 +87,11 @@ int main(int argc, char *argv[]){
 			fileIn = argv[i];
 			choice = 6;
 		}
+		else if(str == "-hh"){
+			i++;
+			fileIn = argv[i];
+			choice = 7;
+		}
         else if (str.length()>2){
             
 			if (str.find(".poly") != std::string::npos){
@@ -143,6 +148,9 @@ int main(int argc, char *argv[]){
 	}
 	else if(choice == 6){
 		generateConvexHull(fileIn, fileOut);
+	}
+	else if (choice == 7){
+		delaunayTetrahedralizationWithHoles(fileIn, fileOut, size, quiet);
 	}
 	
     return 0;

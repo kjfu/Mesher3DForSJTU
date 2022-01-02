@@ -1,3 +1,11 @@
+<!--
+ * @Author: Kejie Fu
+ * @Date: 2021-09-07 21:09:25
+ * @LastEditTime: 2021-12-30 21:47:48
+ * @LastEditors: Kejie Fu
+ * @Description: 
+ * @FilePath: /Mesher3DForSJTU/README.md
+-->
 
 # Mesher3DForSJTU
 
@@ -49,12 +57,20 @@ the chars after "-rr" with no postfix
 -s sizing
 
 -o filename
+
 ### 1.6 To generate convex hull from points
 
 ```
 >>mesher3d -ch test3d.mesh  -o out.3d
 ````
 -s sizing
+
+### 1.7 To generate 3d mesh from points, delete holes（with 8 points as bounding points with marker 1, and several points with marker 0）
+```
+>> mesher3d -hh -s 5 sample.mesh -o outmesh.mesh
+```
+-s sizing: to set the maximum scalar sizing of the mesh(equals to the maximum edge length, regardless the points with marker 0)  
+-o filename: to set the name of the output *.mesh file
 ## 2 Remark
 ### 2.1 Labels for nodes
 

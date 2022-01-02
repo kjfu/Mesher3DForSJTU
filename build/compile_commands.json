@@ -1,0 +1,72 @@
+[
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/edge.cpp.o -c /home/kjfu/research/Mesher3DForSJTU/src/edge.cpp",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/edge.cpp"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/hashEdge.cpp.o -c /home/kjfu/research/Mesher3DForSJTU/src/hashEdge.cpp",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/hashEdge.cpp"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/hashFacet.cpp.o -c /home/kjfu/research/Mesher3DForSJTU/src/hashFacet.cpp",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/hashFacet.cpp"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-gcc-9 -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/kdtree.c.o   -c /home/kjfu/research/Mesher3DForSJTU/src/kdtree.c",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/kdtree.c"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/main.cpp.o -c /home/kjfu/research/Mesher3DForSJTU/src/main.cpp",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/main.cpp"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/mesh.cpp.o -c /home/kjfu/research/Mesher3DForSJTU/src/mesh.cpp",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/mesh.cpp"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/mesher3d_core.cpp.o -c /home/kjfu/research/Mesher3DForSJTU/src/mesher3d_core.cpp",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/mesher3d_core.cpp"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/mesher3d_io.cpp.o -c /home/kjfu/research/Mesher3DForSJTU/src/mesher3d_io.cpp",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/mesher3d_io.cpp"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/predicates.cxx.o -c /home/kjfu/research/Mesher3DForSJTU/src/predicates.cxx",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/predicates.cxx"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/sphere.cpp.o -c /home/kjfu/research/Mesher3DForSJTU/src/sphere.cpp",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/sphere.cpp"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/surfaceMesh.cpp.o -c /home/kjfu/research/Mesher3DForSJTU/src/surfaceMesh.cpp",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/surfaceMesh.cpp"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/tetgen.cxx.o -c /home/kjfu/research/Mesher3DForSJTU/src/tetgen.cxx",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/tetgen.cxx"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-gcc-9 -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/triangle.c.o   -c /home/kjfu/research/Mesher3DForSJTU/src/triangle.c",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/triangle.c"
+},
+{
+  "directory": "/home/kjfu/research/Mesher3DForSJTU/build",
+  "command": "/bin/x86_64-linux-gnu-g++-9  -DTETLIBRARY  -g   -o CMakeFiles/mesher3d.dir/src/vector3d.cpp.o -c /home/kjfu/research/Mesher3DForSJTU/src/vector3d.cpp",
+  "file": "/home/kjfu/research/Mesher3DForSJTU/src/vector3d.cpp"
+}
+]

@@ -333,6 +333,7 @@ public:
     double maxSizing = std::numeric_limits<double>::min();
     double minSizing = std::numeric_limits<double>::max();
     void estimateSizing();
+    
     void interpolateNodeValuesForAnotherMesh(Mesh &anotherMesh);
 
     //cavity-based op

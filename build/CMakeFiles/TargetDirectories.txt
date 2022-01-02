@@ -1,0 +1,3 @@
+/home/kjfu/research/Mesher3DForSJTU/build/CMakeFiles/rebuild_cache.dir
+/home/kjfu/research/Mesher3DForSJTU/build/CMakeFiles/edit_cache.dir
+/home/kjfu/research/Mesher3DForSJTU/build/CMakeFiles/mesher3d.dir
