@@ -1,7 +1,7 @@
 <!--
  * @Author: Kejie Fu
  * @Date: 2021-09-07 21:09:25
- * @LastEditTime: 2021-12-30 21:47:48
+ * @LastEditTime: 2022-01-02 23:36:29
  * @LastEditors: Kejie Fu
  * @Description: 
  * @FilePath: /Mesher3DForSJTU/README.md
@@ -71,10 +71,10 @@ the chars after "-rr" with no postfix
 >> mesher3d -hh -s 5 sample.mesh -o outmesh.mesh
 ```
 -s sizing: to set the maximum scalar sizing of the mesh(equals to the maximum edge length, regardless the points with marker 0)  
--o filename: to set the name of the output *.mesh file
+-o filename: to set the name of the output *.mesh file 
 =======
 
->>>>>>> f088d56870d3bd90aa43e46ae5b7afa15d7c0e9a
+
 ## 2 Remark
 ### 2.1 Labels for nodes
 
