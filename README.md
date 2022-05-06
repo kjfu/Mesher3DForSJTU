@@ -74,7 +74,6 @@ the chars after "-rr" with no postfix
 -o filename: to set the name of the output *.mesh file 
 
 
-
 ## 2 Remark
 ### 2.1 Labels for nodes
 
