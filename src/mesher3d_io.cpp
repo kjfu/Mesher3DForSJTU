@@ -88,6 +88,7 @@ void loadNodesWithLabel(tetgenio &tetIn, std::string filePath, Vector3D &max, Ve
 				tetIn.numberofpoints = nv;
 				tetIn.pointlist = new REAL[tetIn.numberofpoints*3];
 				tetIn.pointmarkerlist = new int[tetIn.numberofpoints];
+                tetIn.pointmarkerlist = new int[tetIn.numberofpoints];
                 int index = 0;
 				for(int i=0; i<nv; i++){
 					std::getline(inFile, line);
@@ -99,7 +100,8 @@ void loadNodesWithLabel(tetgenio &tetIn, std::string filePath, Vector3D &max, Ve
                     tetIn.pointlist[3*i] = x;
                     tetIn.pointlist[3*i+1] = y;
                     tetIn.pointlist[3*i+2] = z;
-                    if (marker==0){
+                    tetIn.pointmarkerlist[i] = marker;
+                    if (marker!=1){
                         omax[0] = std::max(omax[0], x);
                         omax[1] = std::max(omax[1], y);
                         omax[2] = std::max(omax[2], z);

@@ -2,9 +2,9 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(mesher3d)
-# SET(CMAKE_C_COMPILER gcc-10)
+# SET(CMAKE_C_COMPILER clang-10)
 # add_compile_options(-std=c++14 -fpermissive)
-
+set(CMAKE_CXX_STANDARD 14)
 
 aux_source_directory(./src DIR_SRCS)
 

@@ -1,0 +1,12 @@
+# Build
+*build*/*
+.idea/*
+.vscode/
+/data
+.DS_Store
+test.cpp
+
+# Test
+/test
+file/
+example

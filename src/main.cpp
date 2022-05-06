@@ -92,6 +92,11 @@ int main(int argc, char *argv[]){
 			fileIn = argv[i];
 			choice = 7;
 		}
+		else if(str == "-hd2"){
+			i++;
+			fileIn = argv[i];
+			choice = 8;
+		}
         else if (str.length()>2){
             
 			if (str.find(".poly") != std::string::npos){
@@ -112,13 +117,14 @@ int main(int argc, char *argv[]){
 
 			}
         }
+
     }
 
 	//TEST
-	// choice = 5;
+	// choice = 8;
 	// quiet = true;
 	// size = 15;
-	// fileIn = "/home/kjfu/research/Mesher3DForSJTU/examples/bugCase/20210428/cp.mesh";
+	// fileIn = "/home/kjfu/research/Mesher3DForSJTU/examples/periodic2/disloc_ref_buf_new.mesh";
 	// fileIn = "C:\\Users\\Fu Kejie\\Desktop\\workspace\\Mesher3DForSJTU\\examples\\periodic\\dislocation.mesh";
 	// refineFileHeadIn = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d";
 	// refineFileHeadOut = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d_out";
@@ -151,6 +157,9 @@ int main(int argc, char *argv[]){
 	}
 	else if (choice == 7){
 		delaunayTetrahedralizationWithHoles(fileIn, fileOut, size, quiet);
+	}
+	else if(choice == 8){
+		generateZHandleMeshV3(fileIn, fileOut, size, quiet);
 	}
 	
     return 0;

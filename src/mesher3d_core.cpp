@@ -1489,6 +1489,96 @@ void parseZHandle(SurfaceMesh &zHandleSurface, double top, double bottom,
 
 }
 
+
+void generateZHandleMeshV3(const std::string &fileIn, const std::string &fileOut, double size, bool beQuiet){
+	Mesh goalMesh;
+	Vector3D xyzmin;
+	Vector3D xyzmax;
+	Vector3D oxyzmin;
+	Vector3D oxyzmax;
+	tetgenio tetIn;
+	std::vector<int> indexOf1;
+	loadNodesWithLabel(tetIn, fileIn, xyzmax, xyzmin, oxyzmax, oxyzmin, indexOf1);
+
+	if(indexOf1.size()!=8){
+		std::cout << "Missing bounding box nodes!" << std::endl;
+		exit(1);
+	}
+
+	Vector3D deltaPos(oxyzmax[0] - oxyzmin[0], oxyzmax[1] - oxyzmin[1], oxyzmax[2] - oxyzmin[2]);
+	resetPoints(tetIn, oxyzmax+deltaPos, oxyzmin-deltaPos, indexOf1);
+	Mesh innerMesh;
+	SurfaceMesh interSurface;
+	generateConvaxHullFromPointsIn3D(tetIn, oxyzmax, oxyzmin, innerMesh, interSurface, true);
+
+	std::cout << innerMesh.nodes.size() << std::endl;
+	for(auto &t: innerMesh.tetrahedrons){
+		t->label = 0;
+	}
+	innerMesh.rebuildTetrahedronsAdjacency();
+	// for(auto n: innerMesh.nodes){
+	// 	n->label = 0;
+	// }
+	for(auto t: innerMesh.tetrahedrons){
+		bool isContinue = false;
+		for (int i=0; i<4; i++){
+			if (t->nodes[i]->label != 0) {
+				isContinue = true;
+				break;
+			}
+		}
+		if(isContinue){
+			t->label = 1;
+		}
+	}
+	
+	for(auto t: innerMesh.tetrahedrons){
+		if(t->label==1){
+			for(auto v: t->nodes){
+				if(v->label==0) v->label = 3;
+			}
+			for(int i=0; i<4; i++){
+				if (t->adjacentTetrahedrons[i] && t->adjacentTetrahedrons[i]->label==0){
+					TriangleFacet f =  t->facet(i, true);
+					for(auto v: f.sNodes){
+						v->label = 2;
+					}
+				}
+				else if(!t->adjacentTetrahedrons[i]){
+					TriangleFacet f =  t->facet(i, true);
+					for(auto v: f.sNodes){
+						if ((v->pos[2]>=(oxyzmax[2]-1e-6) || v->pos[2]<=(oxyzmin[2]+1e-6)) && (v->label==0 || v->label == 3)) v->label = 1;
+					}
+				}
+			}
+		}
+		else if(t->label==0){
+			for(int i=0; i<4; i++){
+				if(!t->adjacentTetrahedrons[i]){
+					TriangleFacet f =  t->facet(i, true);
+					for(auto v: f.sNodes){
+						v->label = 2;
+					}
+				}
+			}
+		}
+	}
+
+	Mesh out;
+	parseZHandleV2(interSurface, xyzmax, xyzmin, oxyzmax, oxyzmin, size, out);
+	innerMesh.mergeMesh(out, 1e-10);
+	innerMesh.exportMESH(fileOut);
+	innerMesh.exportVTK(fileOut+".vtk");
+
+}
+
+
+
+
+
+
+
+
 void generateZHandleMeshV2(const std::string &fileIn, const std::string &fileOut, double size, bool beQuiet){
 	Mesh goalMesh;
 	Vector3D xyzmin;
@@ -1509,6 +1599,7 @@ void generateZHandleMeshV2(const std::string &fileIn, const std::string &fileOut
 	Mesh innerMesh;
 	SurfaceMesh interSurface;
 	generateConvaxHullFromPointsIn3D(tetIn, oxyzmax, oxyzmin, innerMesh, interSurface);
+	std::cout << innerMesh.nodes.size() << std::endl;
 	for(auto &t: innerMesh.tetrahedrons){
 		t->label = 0;
 	}
@@ -1750,7 +1841,7 @@ void generateConvaxHullFromPointsIn3DRemoveHoles(tetgenio &tet, Mesh &goalMesh, 
 	std::sort(tmpTetRadius.begin(), tmpTetRadius.end());
 	double eps = tmpTetRadius[tetRadius.size()*0.5];
 	for(int i = 0; i <tetRadius.size(); i++){
-		if (tetRadius[i]>1.001*eps){
+		if (tetRadius[i]>1.5*eps){
 			goalMesh.tetrahedrons[i]->edit = 1;
 		}
 		else{
@@ -1816,12 +1907,12 @@ void generateConvaxHullFromPointsIn3D(tetgenio &tet, Mesh &goalMesh, SurfaceMesh
 
 	goalSurface.rebuildIndices();
 }
-void generateConvaxHullFromPointsIn3D(tetgenio &tet, Vector3D &oxyzmax, Vector3D &oxyzmin, Mesh &goalMesh, SurfaceMesh &goalSurface){
+void generateConvaxHullFromPointsIn3D(tetgenio &tet, Vector3D &oxyzmax, Vector3D &oxyzmin, Mesh &goalMesh, SurfaceMesh &goalSurface, bool withPointLabel){
 	tetgenio tetout;
 	char cmd[] = "Q";
 	tetrahedralize(cmd, &tet, &tetout);
-
-	goalMesh.loadTETGENIO(tetout);
+	// std::cout << tet.numberofpoints << "  " << tetout.numberofpoints << std::endl;
+	goalMesh.loadTETGENIO(tetout, withPointLabel);
 
 	auto box3dContain=
     [&oxyzmax, &oxyzmin]
