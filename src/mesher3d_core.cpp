@@ -92,7 +92,7 @@ void delaunayTetrahedralizationWithHoles(const std::string &fileIn, const std::s
 	// tetrahedralize(cmd, &innerIn, &innerOut);
 	generateConvaxHullFromPointsIn3DRemoveHoles(innerIn, innerMesh, shellSurface);
 	
-
+	//shellSurface.exportVTK("/home/kjfu/research/Mesher3DForSJTU/examples/two_holes2/surf.vtk");
 	shellSurface.estimateSizing();
 	int numNodesInsideShell = shellSurface.nodes.size();
 
@@ -119,16 +119,23 @@ void delaunayTetrahedralizationWithHoles(const std::string &fileIn, const std::s
 	for(int i=numNodesInsideShell; i<shellSurface.nodes.size(); i++){
 		shellIn.pointmtrlist[i] = size;
 	}
-	shellIn.numberofholes=1;
-	shellIn.holelist = new double[3];
-	Vector3D holePos(0, 0, 0);
-	for(auto n: shellSurface.nodes){
-		holePos+=n->pos;
-	}
-	holePos/=shellSurface.nodes.size();
-	shellIn.holelist[0] = holePos[0];
-	shellIn.holelist[1] = holePos[1];
-	shellIn.holelist[2] = holePos[2];
+	std::vector<Vector3D> holes;
+	innerMesh.getSubRegionCenters(holes);
+	shellIn.numberofholes=holes.size();
+	shellIn.holelist = new double[3*shellIn.numberofholes];
+	for(int i=0; i<holes.size(); i++){
+		shellIn.holelist[3*i] = holes[i][0];
+		shellIn.holelist[3*i+1] = holes[i][1];
+		shellIn.holelist[3*i+2] = holes[i][2];
+}
+	// Vector3D holePos(0, 0, 0);
+	// for(auto n: shellSurface.nodes){
+	// 	holePos+=n->pos;
+	// }
+	// holePos/=shellSurface.nodes.size();
+	// shellIn.holelist[0] = holePos[0];
+	// shellIn.holelist[1] = holePos[1];
+	// shellIn.holelist[2] = holePos[2];
 	char cmdcmd[] = "pqmYQ";
 	tetrahedralize(cmdcmd, &shellIn, &shellOut);
 	Mesh shellMesh;
@@ -172,7 +179,7 @@ void delaunayTetrahedralization(const std::string &fileIn, const std::string &fi
 	// tetrahedralize(cmd, &innerIn, &innerOut);
 	generateConvaxHullFromPointsIn3D(innerIn, innerMesh, shellSurface);
 	
-
+	shellSurface.exportVTK("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/atomboundary.vtk");
 	shellSurface.estimateSizing();
 	int numNodesInsideShell = shellSurface.nodes.size();
 
@@ -185,7 +192,7 @@ void delaunayTetrahedralization(const std::string &fileIn, const std::string &fi
 	SurfaceMesh tmp;
 	tmp.loadTETGENIO(outerOut);
 	int numNodesOutsideShell = tmp.nodes.size();
-
+	tmp.exportVTK("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/outboundary.vtk");
 	shellSurface.addSubSurfaceMesh(tmp);
 	tetgenio shellIn;
 	tetgenio shellOut;
@@ -1812,11 +1819,45 @@ void generateConvaxHullFromPointsIn3DRemoveHoles(tetgenio &tet, Mesh &goalMesh, 
 	};
 
 
+
+	std::vector<double> tetRadius;
+	tetgenmesh tetmesh;
+	double tmpCenter[3];
+	double radius;
+	for(auto &tet: goalMesh.tetrahedrons){
+		tet->edit = 0;
+		tetmesh.circumsphere( tet->nodes[0]->pos.data(),tet->nodes[1]->pos.data(),tet->nodes[2]->pos.data(),tet->nodes[3]->pos.data(), tmpCenter, &radius);
+		tetRadius.push_back(radius);
+	}
+	std::vector<double> tmpTetRadius = tetRadius;
+	std::sort(tmpTetRadius.begin(), tmpTetRadius.end());
+	double eps = tmpTetRadius[tetRadius.size()*0.5];
+
+	int removes=0;
+	do{
+		removes=0;
+		for(int i = 0; i <goalMesh.tetrahedrons.size(); i++){
+			if (goalMesh.tetrahedrons[i]->edit) continue;
+			bool isBorder = false;
+			for (int j = 0; j < 4; j++){
+				if (goalMesh.tetrahedrons[i]->adjacentTetrahedrons[j]==nullptr || goalMesh.tetrahedrons[i]->adjacentTetrahedrons[j]->edit){
+					isBorder = true;
+					break;
+				}
+			}
+			if (isBorder){
+				if (tetRadius[i]>1.5*eps){
+					goalMesh.tetrahedrons[i]->edit = 1;
+					removes++;
+				}
+			}
+		}
+	}while(removes);
+
 	for(auto &e: goalMesh.tetrahedrons){
-
+		if(e->edit) continue;
 		for(int i=0; i<4; i++){
-
-			if (e->adjacentTetrahedrons[i]==nullptr){
+			if (e->adjacentTetrahedrons[i]==nullptr || e->adjacentTetrahedrons[i]->edit){
 				TriangleElement *tri = new TriangleElement(getNode(e->nodes[(i+1)%4]), getNode(e->nodes[(i+2)%4]), getNode(e->nodes[(i+3)%4]));
 				goalSurface.triangles.push_back(tri);
 			}
@@ -1829,34 +1870,22 @@ void generateConvaxHullFromPointsIn3DRemoveHoles(tetgenio &tet, Mesh &goalMesh, 
 	for(auto &n: oldNewNodes){
 		goalSurface.nodes.push_back(n.second);
 	}
-	std::vector<double> tetRadius;
-	tetgenmesh tetmesh;
-	double tmpCenter[3];
-	double radius;
-	for(auto &tet: goalMesh.tetrahedrons){
-		tetmesh.circumsphere( tet->nodes[0]->pos.data(),tet->nodes[1]->pos.data(),tet->nodes[2]->pos.data(),tet->nodes[3]->pos.data(), tmpCenter, &radius);
-		tetRadius.push_back(radius);
-	}
-	std::vector<double> tmpTetRadius = tetRadius;
-	std::sort(tmpTetRadius.begin(), tmpTetRadius.end());
-	double eps = tmpTetRadius[tetRadius.size()*0.5];
-	for(int i = 0; i <tetRadius.size(); i++){
-		if (tetRadius[i]>1.5*eps){
-			goalMesh.tetrahedrons[i]->edit = 1;
-		}
-		else{
-			goalMesh.tetrahedrons[i]->edit = 0;
-		}
-	}
+
+
 	for(int i=0; i<goalMesh.tetrahedrons.size();i++){
 		if (goalMesh.tetrahedrons[i]->edit){
 			delete goalMesh.tetrahedrons[i];
-			goalMesh.tetrahedrons.erase(goalMesh.tetrahedrons.begin()+i);
+			goalMesh.tetrahedrons[i]=goalMesh.tetrahedrons.back();
+			goalMesh.tetrahedrons.pop_back();
+			//goalMesh.tetrahedrons.erase(goalMesh.tetrahedrons.begin()+i);
 			i--;
 		}
 	}
-	goalMesh.rebuildIndices();
 
+	goalMesh.rebuildIndices();	
+
+
+	// goalMesh.exportMESH("/home/kjfu/research/Mesher3DForSJTU/examples/two_holes2/inner3d.mesh");
 	goalSurface.rebuildIndices();
 }
 

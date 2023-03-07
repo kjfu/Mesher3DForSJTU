@@ -8,6 +8,8 @@
 #include <sstream>
 #include "common.h"
 #include "surfaceMesh.h"
+#include <vector>
+#include <queue>
 double SixTimesTetrahedronVolume(Vector3D v0, Vector3D v1, Vector3D v2, Vector3D v3){
     Vector3D a = v0 - v2;
     Vector3D b = v1 - v0;
@@ -32,6 +34,11 @@ void Mesh::rebuildIndices(){
 
 
 void Mesh::rebuildTetrahedronsAdjacency(){
+    for(auto e:tetrahedrons){
+        for(int i=0; i<4; i++){
+            e->adjacentTetrahedrons[i] = nullptr;
+        }
+    }
     HashFacetTable table;
     for(auto e: tetrahedrons){
         for(int i=0; i<4; i++){
@@ -625,7 +632,33 @@ void Mesh::clone(const Mesh &aMesh){
 }
 
 
-
+void Mesh::getSubRegionCenters(std::vector<Vector3D> &positions){
+    for(auto tet: tetrahedrons){
+        tet->edit=0;
+    }
+    rebuildTetrahedronsAdjacency();
+    for(auto tet: tetrahedrons){
+        if (tet->edit) continue;
+        Vector3D vec(0, 0, 0);
+        double div=0;
+        std::queue<Tetrahedron*> tets;
+        tets.push(tet);
+        while(!tets.empty()){
+            Tetrahedron *tmp= tets.front();
+            tets.pop();
+            if (tmp->edit) continue;
+            tmp->edit=1;
+            div++;
+            vec+=tmp->center();
+            for(auto adj: tmp->adjacentTetrahedrons){
+                if (adj &&adj->edit==0){
+                    tets.push(adj);
+                }
+            }
+        }
+        positions.push_back(vec/div);
+    }
+}
 
 void Mesh::checkBooleanRemove(Mesh &anotherMesh, int outerLayers){
 

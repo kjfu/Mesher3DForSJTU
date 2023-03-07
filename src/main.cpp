@@ -121,10 +121,11 @@ int main(int argc, char *argv[]){
     }
 
 	//TEST
-	// choice = 8;
+	// choice = 2;
 	// quiet = true;
-	// size = 15;
-	// fileIn = "/home/kjfu/research/Mesher3DForSJTU/examples/periodic2/disloc_ref_buf_new.mesh";
+	// size = 5;
+	// fileIn = "/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/cpcb.mesh";
+	// fileOut = "/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/out3d.mesh";
 	// fileIn = "C:\\Users\\Fu Kejie\\Desktop\\workspace\\Mesher3DForSJTU\\examples\\periodic\\dislocation.mesh";
 	// refineFileHeadIn = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d";
 	// refineFileHeadOut = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d_out";

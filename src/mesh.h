@@ -356,6 +356,8 @@ public:
     void loadTETGENIO(tetgenio &in, bool withLabel = false);
     void exportMESH(const std::string &filePath);
 
+    //Perform staining
+    void getSubRegionCenters(std::vector<Vector3D> &positions);
 
     void rebuildAABBox();
 };

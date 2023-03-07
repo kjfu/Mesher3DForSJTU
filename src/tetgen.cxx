@@ -35,7 +35,10 @@
 // the first index of the first point.                                       //
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
-
+//kjfu
+#include <string>
+#include <fstream>
+void exportTriangleSorting2VTK(int nv, double **pnts, std::string filePath);
 bool tetgenio::load_node_call(FILE* infile, int markers, int uvflag, 
                               char* infilename)
 {
@@ -12304,7 +12307,7 @@ void tetgenmesh::incrementaldelaunay(clock_t& tv)
                            b->brio_ratio, &ngroup);
     }
   }
-
+// exportTriangleSorting2VTK(in->numberofpoints, permutarray, "/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/point_order.vtk");
   tv = clock(); // Remember the time for sorting points.
 
   // Calculate the diagonal size of its bounding box.
@@ -12390,7 +12393,6 @@ void tetgenmesh::incrementaldelaunay(clock_t& tv)
   // Create the initial Delaunay tetrahedralization.
   initialdelaunay(permutarray[0], permutarray[1], permutarray[2],
                   permutarray[3]);
-
   if (b->verbose) {
     printf("  Incrementally inserting vertices.\n");
   }
@@ -12406,7 +12408,7 @@ void tetgenmesh::incrementaldelaunay(clock_t& tv)
     ivf.bowywat = 1;
     ivf.lawson = 0;
   }
-
+    // outmesh2vtk("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/point_insert_3");
 
   for (i = 4; i < in->numberofpoints; i++) {
     if (pointtype(permutarray[i]) == UNUSEDVERTEX) {
@@ -12420,8 +12422,13 @@ void tetgenmesh::incrementaldelaunay(clock_t& tv)
       searchtet.tet = NULL;
     }
     ivf.iloc = (int) OUTSIDE;
+    
     // Insert the vertex.
     if (insertpoint(permutarray[i], &searchtet, NULL, NULL, &ivf)) {
+      // std::string str= "/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/point_insert_"+std::to_string(i);
+      // char ctr[1024];
+      // strcpy(ctr, str.c_str());
+      // outmesh2vtk(ctr);
       if (flipstack != NULL) {
         // Perform flip to recover Delaunayness.
         incrementalflip(permutarray[i], (ivf.iloc == (int) OUTSIDE), &fc);
@@ -24263,6 +24270,44 @@ void tetgenmesh::interpolatemeshsize()
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+
+//kjfu
+void exportTriangleSorting2VTK(int nv, double **pnts, std::string filePath) {
+
+	std::ofstream file(filePath);
+	file << "# vtk DataFile Version 2.0\n";
+	file << "mesh grid\n";
+	file << "ASCII\n";
+	file << "DATASET UNSTRUCTURED_GRID\n";
+	file << "POINTS " << nv << " double\n";
+
+    for (int i = 0; i < nv; i++) {
+        file.precision(15);
+        file << pnts[i][0] << "  " << pnts[i][1] << "  " << pnts[i][2] << std::endl;
+    }
+
+    file << "CELLS " << nv-1 << " " << (nv-1)* 3 << std::endl;
+    for (int i = 0; i < (nv - 1); i++) {
+        file << 2 << "  " << i << "  " << i + 1 << std::endl;
+    }
+
+	file << "CELL_TYPES " << (nv-1) << std::endl;
+	for (int i = 0; i < (nv - 1); i++) {
+		file << 3 << std::endl;
+	}
+
+	file << "CELL_DATA " << (nv-1) << std::endl;
+	file << "SCALARS ordered int 1" << std::endl;
+	file << "LOOKUP_TABLE default" << std::endl;
+
+	for (int i = 0; i < (nv-1); i++) {
+		file << i << std::endl;
+	}
+
+
+}
+
+
 void tetgenmesh::insertconstrainedpoints(point *insertarray, int arylen,
                                          int rejflag)
 {
@@ -24341,7 +24386,6 @@ void tetgenmesh::insertconstrainedpoints(point *insertarray, int arylen,
 
   encseglist = new arraypool(sizeof(face), 8);
   encshlist = new arraypool(sizeof(badface), 8);
-
   // Insert the points.
   for (i = 0; i < arylen; i++) {
     // Find the location of the inserted point.
@@ -32139,7 +32183,7 @@ void tetrahedralize(tetgenbehavior *b, tetgenio *in, tetgenio *out,
   } else { // -p
     m.incrementaldelaunay(ts[0]);
   }
-
+  // m.outmesh2vtk("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/tmp2");
   tv[2] = clock();
 
   if (!b->quiet) {
@@ -32181,7 +32225,7 @@ void tetrahedralize(tetgenbehavior *b, tetgenio *in, tetgenio *out,
     }
   }
 
-
+  // m.outmesh2vtk("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/tmp3");
   tv[3] = clock();
 
   if ((b->metric) && (m.bgm != NULL)) { // -m
@@ -32206,7 +32250,7 @@ void tetrahedralize(tetgenbehavior *b, tetgenio *in, tetgenio *out,
       }
     }
   }
-
+  // m.outmesh2vtk("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/tmp4");
   tv[4] = clock();
 
   if (b->plc && !b->refine) { // -p
@@ -32252,7 +32296,7 @@ void tetrahedralize(tetgenbehavior *b, tetgenio *in, tetgenio *out,
       }
     }
   }
-
+  // m.outmesh2vtk("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/tmp5");
   tv[5] = clock();
 
   if (b->coarsen) { // -R
@@ -32270,7 +32314,7 @@ void tetrahedralize(tetgenbehavior *b, tetgenio *in, tetgenio *out,
   if ((b->plc && b->nobisect) || b->coarsen) {
     m.recoverdelaunay();
   }
-
+  // m.outmesh2vtk("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/tmp7");
   tv[7] = clock();
 
   if (!b->quiet) {
@@ -32298,7 +32342,7 @@ void tetrahedralize(tetgenbehavior *b, tetgenio *in, tetgenio *out,
   if (b->quality) {
     m.delaunayrefinement();    
   }
-
+  // m.outmesh2vtk("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/tmp9");
   tv[9] = clock();
 
   if (!b->quiet) {
@@ -32310,7 +32354,7 @@ void tetrahedralize(tetgenbehavior *b, tetgenio *in, tetgenio *out,
   if ((b->plc || b->refine) && (b->optlevel > 0)) {
     m.optimizemesh();
   }
-
+  // m.outmesh2vtk("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/tmp10");
   tv[10] = clock();
 
   if (!b->quiet) {
