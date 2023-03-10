@@ -1864,13 +1864,17 @@ void generateConvaxHullFromPointsIn3DRemoveHoles(tetgenio &tet, Mesh &goalMesh, 
 		}
 	}
 
-
-
-
 	for(auto &n: oldNewNodes){
 		goalSurface.nodes.push_back(n.second);
 	}
 
+	for(int i = 0; i <goalMesh.tetrahedrons.size(); i++){
+		if (goalMesh.tetrahedrons[i]->edit) continue;
+		if (tetRadius[i]>1.5*eps){
+			goalMesh.tetrahedrons[i]->edit = 1;
+			removes++;
+		}
+	}
 
 	for(int i=0; i<goalMesh.tetrahedrons.size();i++){
 		if (goalMesh.tetrahedrons[i]->edit){
