@@ -1571,6 +1571,8 @@ void generateZHandleMeshV3(const std::string &fileIn, const std::string &fileOut
 		}
 	}
 
+	innerMesh.exportVTK(fileOut+"_test.vtk");
+	interSurface.exportVTK(fileOut+"_surf.vtk");
 	Mesh out;
 	parseZHandleV2(interSurface, xyzmax, xyzmin, oxyzmax, oxyzmin, size, out);
 	innerMesh.mergeMesh(out, 1e-10);
@@ -1867,14 +1869,15 @@ void generateConvaxHullFromPointsIn3DRemoveHoles(tetgenio &tet, Mesh &goalMesh, 
 	for(auto &n: oldNewNodes){
 		goalSurface.nodes.push_back(n.second);
 	}
+	
 
-	for(int i = 0; i <goalMesh.tetrahedrons.size(); i++){
-		if (goalMesh.tetrahedrons[i]->edit) continue;
-		if (tetRadius[i]>1.5*eps){
-			goalMesh.tetrahedrons[i]->edit = 1;
-			removes++;
-		}
-	}
+	// for(int i = 0; i <goalMesh.tetrahedrons.size(); i++){
+	// 	if (goalMesh.tetrahedrons[i]->edit) continue;
+	// 	if (tetRadius[i]>1.5*eps){
+	// 		goalMesh.tetrahedrons[i]->edit = 1;
+	// 		removes++;
+	// 	}
+	// }
 
 	for(int i=0; i<goalMesh.tetrahedrons.size();i++){
 		if (goalMesh.tetrahedrons[i]->edit){
@@ -1946,6 +1949,7 @@ void generateConvaxHullFromPointsIn3D(tetgenio &tet, Vector3D &oxyzmax, Vector3D
 	tetrahedralize(cmd, &tet, &tetout);
 	// std::cout << tet.numberofpoints << "  " << tetout.numberofpoints << std::endl;
 	goalMesh.loadTETGENIO(tetout, withPointLabel);
+	goalMesh.rebuildTetrahedronsAdjacency();
 
 	auto box3dContain=
     [&oxyzmax, &oxyzmin]
@@ -1984,43 +1988,101 @@ void generateConvaxHullFromPointsIn3D(tetgenio &tet, Vector3D &oxyzmax, Vector3D
 		return rst;
 	};
 
+	std::vector<double> tetRadius;
+	tetgenmesh tetmesh;
+	double tmpCenter[3];
+	double radius;
+	for(auto &tet: goalMesh.tetrahedrons){
+		tet->edit = 0;
+		tetmesh.circumsphere( tet->nodes[0]->pos.data(),tet->nodes[1]->pos.data(),tet->nodes[2]->pos.data(),tet->nodes[3]->pos.data(), tmpCenter, &radius);
+		tetRadius.push_back(radius);
+		if (tet->nodes[0]->edit || tet->nodes[1]->edit || tet->nodes[2]->edit || tet->nodes[3]->edit) tet->edit = 1;
+	}
+	std::vector<double> tmpTetRadius = tetRadius;
+	std::sort(tmpTetRadius.begin(), tmpTetRadius.end());
+	double eps = tmpTetRadius[tetRadius.size()*0.5];
+
+	int removes=0;
+	do{
+		removes=0;
+		for(int i = 0; i <goalMesh.tetrahedrons.size(); i++){
+			if (goalMesh.tetrahedrons[i]->edit) continue;
+			bool isBorder = false;
+			for (int j = 0; j < 4; j++){
+				if (goalMesh.tetrahedrons[i]->adjacentTetrahedrons[j]==nullptr || goalMesh.tetrahedrons[i]->adjacentTetrahedrons[j]->edit){
+					isBorder = true;
+					break;
+				}
+			}
+			if (isBorder){
+				if (tetRadius[i]>2*eps){
+					goalMesh.tetrahedrons[i]->edit = 1;
+					removes++;
+				}
+			}
+		}
+	}while(removes);
 
 	for(auto &e: goalMesh.tetrahedrons){
-		e->edit=0;
+		if(e->edit) continue;
 		for(int i=0; i<4; i++){
-			if(e->nodes[i]->edit==1){
-				e->edit=1;
-			}
-			if (e->nodes[i]->edit ==1 && e->nodes[(i+1)%4]->edit!=1 && e->nodes[(i+2)%4]->edit!=1 && e->nodes[(i+3)%4]->edit!=1 ){
-
+			if (e->adjacentTetrahedrons[i]==nullptr || e->adjacentTetrahedrons[i]->edit){
 				TriangleElement *tri = new TriangleElement(getNode(e->nodes[(i+1)%4]), getNode(e->nodes[(i+2)%4]), getNode(e->nodes[(i+3)%4]));
 				goalSurface.triangles.push_back(tri);
 			}
 		}
 	}
 
-	for (int i=0; i<goalMesh.tetrahedrons.size(); i++){
-		if(goalMesh.tetrahedrons[i]->edit==1){
-			delete goalMesh.tetrahedrons[i];
-			goalMesh.tetrahedrons.erase(goalMesh.tetrahedrons.begin()+i);
-
-			i--;
-		}
-	}
-
-	for (int i=0; i<goalMesh.nodes.size(); i++){
-		if(goalMesh.nodes[i]->edit==1){
-			delete goalMesh.nodes[i];
-			goalMesh.nodes.erase(goalMesh.nodes.begin()+i);
-			i--;
-		}
-	}
-	goalMesh.rebuildIndices();
-
-
 	for(auto &n: oldNewNodes){
 		goalSurface.nodes.push_back(n.second);
 	}
+
+	// for(auto &e: goalMesh.tetrahedrons){
+	// 	e->edit=0;
+	// 	for(int i=0; i<4; i++){
+	// 		if(e->nodes[i]->edit==1){
+	// 			e->edit=1;
+	// 		}
+	// 		if (e->nodes[i]->edit ==1 && e->nodes[(i+1)%4]->edit!=1 && e->nodes[(i+2)%4]->edit!=1 && e->nodes[(i+3)%4]->edit!=1 ){
+
+	// 			TriangleElement *tri = new TriangleElement(getNode(e->nodes[(i+1)%4]), getNode(e->nodes[(i+2)%4]), getNode(e->nodes[(i+3)%4]));
+	// 			goalSurface.triangles.push_back(tri);
+	// 		}
+	// 	}
+	// }
+
+	// for (int i=0; i<goalMesh.tetrahedrons.size(); i++){
+	// 	if(goalMesh.tetrahedrons[i]->edit==1){
+	// 		delete goalMesh.tetrahedrons[i];
+	// 		goalMesh.tetrahedrons.erase(goalMesh.tetrahedrons.begin()+i);
+
+	// 		i--;
+	// 	}
+	// }
+
+	// for (int i=0; i<goalMesh.nodes.size(); i++){
+	// 	if(goalMesh.nodes[i]->edit==1){
+	// 		delete goalMesh.nodes[i];
+	// 		goalMesh.nodes.erase(goalMesh.nodes.begin()+i);
+	// 		i--;
+	// 	}
+	// }
+	// goalMesh.rebuildIndices();
+	for(int i=0; i<goalMesh.tetrahedrons.size();i++){
+		if (goalMesh.tetrahedrons[i]->edit){
+			delete goalMesh.tetrahedrons[i];
+			goalMesh.tetrahedrons[i]=goalMesh.tetrahedrons.back();
+			goalMesh.tetrahedrons.pop_back();
+			//goalMesh.tetrahedrons.erase(goalMesh.tetrahedrons.begin()+i);
+			i--;
+		}
+	}
+
+	goalMesh.rebuildIndices();	
+
+	// for(auto &n: oldNewNodes){
+	// 	goalSurface.nodes.push_back(n.second);
+	// }
 
 	goalSurface.rebuildIndices();
 
