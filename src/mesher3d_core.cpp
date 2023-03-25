@@ -1158,6 +1158,112 @@ void resetPoints(tetgenio &tet, Vector3D pMax, Vector3D pMin, std::vector<int> &
 	tet.pointlist[3*indexOf1[7]+2] = pMin[2];
 
 }
+
+void parseZHandleV3(SurfaceMesh &zHandleSurface, Vector3D xyzmax, Vector3D xyzmin, Vector3D oxyzmax, Vector3D oxyzmin, double size, Mesh &meshOut){
+
+	std::vector<std::array<int, 2>> bottomEdges;
+	std::vector<std::array<double, 2>> bottomEdgeNodes;
+	std::vector<std::array<int, 2>> topEdges;
+	std::vector<std::array<double, 2>> topEdgeNodes;
+	parseZHandle(zHandleSurface, oxyzmax[2], oxyzmin[2], topEdgeNodes, bottomEdgeNodes, topEdges, bottomEdges);
+
+	zHandleSurface.estimateSizing();
+	if (size==-1){
+		size = zHandleSurface.maxSizing * 10;
+	}
+
+	//Generate outer surface mesh	
+	SurfaceMesh faceBottom, faceTop, faceFront, faceBack, faceLeft, faceRight;
+	std::array<double, 2> oxymax({oxyzmax[0], oxyzmax[1]});
+	std::array<double, 2> oxymin({oxyzmin[0], oxyzmin[1]});
+
+	generateRectangle({xyzmax[0],xyzmax[1]},{xyzmin[0], xyzmin[1]}, size, bottomEdgeNodes, bottomEdges);
+	generateRectangle({xyzmax[0],xyzmax[1]},{xyzmin[0], xyzmin[1]}, size, topEdgeNodes, topEdges);
+	std::vector<std::array<double,2>> holes;
+	holes.push_back({0.5*(oxymax[0]+oxymin[0]), 0.5*(oxymax[1]+oxymin[1])});
+	triangulateio triBottom;
+	triangulateio triTop;	
+	generateMeshInPlaneWithEdges(bottomEdgeNodes, bottomEdges, holes, size*size/2, triBottom);
+	generateMeshInPlaneWithEdges(topEdgeNodes, topEdges, holes, size*size/2, triTop);
+
+	faceBottom.projectTRIANGULATEIO(triBottom, PROJECTION_TYPE::XY_PLANE, xyzmin[2]);
+	faceTop.projectTRIANGULATEIO(triTop, PROJECTION_TYPE::XY_PLANE, xyzmax[2]);
+	deleteTRIANGULATEIOAllocatedArrays(triBottom);
+	deleteTRIANGULATEIOAllocatedArrays(triTop);
+
+	bottomEdgeNodes.clear();
+	bottomEdges.clear();
+	holes.clear();
+	generateRectangle({xyzmax[1], xyzmax[2]}, {xyzmin[1],xyzmin[2]}, size, bottomEdgeNodes, bottomEdges);
+	triangulateio triFrontBack;	
+	generateMeshInPlaneWithEdges(bottomEdgeNodes, bottomEdges, holes, size*size/2, triFrontBack);
+	faceFront.projectTRIANGULATEIO(triFrontBack, PROJECTION_TYPE::YZ_PLANE, xyzmax[0]);
+	faceBack.projectTRIANGULATEIO(triFrontBack, PROJECTION_TYPE::YZ_PLANE, xyzmin[0]);
+	deleteTRIANGULATEIOAllocatedArrays(triFrontBack);
+
+	bottomEdgeNodes.clear();
+	bottomEdges.clear();
+	holes.clear();
+	generateRectangle({xyzmax[2], xyzmax[0]}, {xyzmin[2],xyzmin[0]}, size, bottomEdgeNodes, bottomEdges);
+	triangulateio triLeftRight;	
+	generateMeshInPlaneWithEdges(bottomEdgeNodes, bottomEdges, holes, size*size/2, triLeftRight);
+	faceRight.projectTRIANGULATEIO(triLeftRight, PROJECTION_TYPE::ZX_PLANE, xyzmax[1]);
+	faceLeft.projectTRIANGULATEIO(triLeftRight, PROJECTION_TYPE::ZX_PLANE, xyzmin[1]);
+	deleteTRIANGULATEIOAllocatedArrays(triLeftRight);
+
+
+	auto addNodeLabel=[](auto &mesh, int label){
+		for(auto n: mesh.nodes){
+			n->label = label;
+		}
+	};
+	addNodeLabel(zHandleSurface, 2);
+	addNodeLabel(faceTop, 1);
+	addNodeLabel(faceBottom, 1);
+	addNodeLabel(faceFront, 1);	
+	addNodeLabel(faceBack, 1);	
+	addNodeLabel(faceRight, 1);	
+	addNodeLabel(faceLeft, 1);
+	int numNodes1 = zHandleSurface.nodes.size();
+	zHandleSurface.mergeSurfaceMesh(faceRight,1e-10);
+	zHandleSurface.mergeSurfaceMesh(faceLeft,1e-10);
+	zHandleSurface.mergeSurfaceMesh(faceFront,1e-10);
+	zHandleSurface.mergeSurfaceMesh(faceBack,1e-10);
+	zHandleSurface.mergeSurfaceMesh(faceTop,1e-10);	
+	zHandleSurface.mergeSurfaceMesh(faceBottom,1e-10);
+	int numNodes2 = zHandleSurface.nodes.size();
+
+	//Generate tetgenio
+	tetgenio in, out;
+	zHandleSurface.exportTETGENIO(in);
+	in.numberofholes = 1;
+	in.holelist = new double[3];
+
+	Vector3D handleHole = Vector3D((xyzmax[0]+xyzmin[0])/2.0, (xyzmax[1]+xyzmin[1])/2.0, (xyzmin[2]+xyzmax[2])/2.0);
+	in.holelist[0] = handleHole[0];
+	in.holelist[1] = handleHole[1];
+	in.holelist[2] = handleHole[2];
+
+	char cmd[] = "pYq1.1/10fQ";
+	tetrahedralize(cmd, &in, &out);
+	meshOut.loadTETGENIO(out, true);
+	//int numTriFacets = out.numberoftrifaces;
+
+	for (int i=0; i<numNodes1; i++){
+		meshOut.nodes[i]->label = 2;
+	}
+	for (int i=numNodes1; i<numNodes2; i++){
+		meshOut.nodes[i]->label = 1;
+	}
+	for (int i=numNodes2; i<meshOut.nodes.size(); i++){
+		meshOut.nodes[i]->label = 3;
+	}
+	for(auto &t: meshOut.tetrahedrons){
+		t->label = 1;
+	}
+}
+
+
 void parseZHandleV2(SurfaceMesh &zHandleSurface, Vector3D xyzmax, Vector3D xyzmin, Vector3D oxyzmax, Vector3D oxyzmin, double size, Mesh &meshOut){
 
     std::vector<std::array<Node *, 2>> topEdges;
@@ -1385,7 +1491,7 @@ void parseZHandleV2(SurfaceMesh &zHandleSurface, Vector3D xyzmax, Vector3D xyzmi
 	in.holelist[1] = handleHole[1];
 	in.holelist[2] = handleHole[2];
 
-	char cmd[] = "pqmfDQ";
+	char cmd[] = "pDqmfQ";
 	tetrahedralize(cmd, &in, &out);
 	meshOut.loadTETGENIO(out, true);
 	int numTriFacets = out.numberoftrifaces;
@@ -1404,6 +1510,7 @@ void parseZHandleV2(SurfaceMesh &zHandleSurface, Vector3D xyzmax, Vector3D xyzmi
 		t->label = 1;
 	}
 }
+
 void parseZHandle(SurfaceMesh &zHandleSurface, double top, double bottom, 
 	std::vector<std::array<double, 2>> &topEdgeNodes,	
     std::vector<std::array<double, 2>> &bottomEdgeNodes,
@@ -1574,7 +1681,7 @@ void generateZHandleMeshV3(const std::string &fileIn, const std::string &fileOut
 	innerMesh.exportVTK(fileOut+"_test.vtk");
 	interSurface.exportVTK(fileOut+"_surf.vtk");
 	Mesh out;
-	parseZHandleV2(interSurface, xyzmax, xyzmin, oxyzmax, oxyzmin, size, out);
+	parseZHandleV3(interSurface, xyzmax, xyzmin, oxyzmax, oxyzmin, size, out);
 	innerMesh.mergeMesh(out, 1e-10);
 	innerMesh.exportMESH(fileOut);
 	innerMesh.exportVTK(fileOut+".vtk");
@@ -1628,7 +1735,7 @@ void generateZHandleMeshV2(const std::string &fileIn, const std::string &fileOut
 	}
 	
 	Mesh out;
-	parseZHandleV2(interSurface, xyzmax, xyzmin, oxyzmax, oxyzmin, size, out);
+	parseZHandleV3(interSurface, xyzmax, xyzmin, oxyzmax, oxyzmin, size, out);
 	innerMesh.mergeMesh(out, 1e-10);
 	innerMesh.exportMESH(fileOut);
 	innerMesh.exportVTK(fileOut+".vtk");

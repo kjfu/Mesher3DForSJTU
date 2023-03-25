@@ -305,7 +305,7 @@ void Mesh::mergeMesh(Mesh &another, double eps){
         kd_res_free(search_rst);
     }
     kd_free(kd);
-   // std::cout << "Total # of merge nodes: " << numMergeNodes << std::endl;
+    //std::cout << "Total # of merge nodes: " << numMergeNodes << std::endl;
 
     nodes.insert(nodes.end(), addNodes.begin(), addNodes.end());
 
