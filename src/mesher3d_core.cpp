@@ -98,12 +98,13 @@ void delaunayTetrahedralizationWithHoles(const std::string &fileIn, const std::s
 
 
 
-	tetgenio outerIn;
-	tetgenio outerOut;
-	generateBoundingBoxTETGENIO(outerIn, xyzmax, xyzmin, size, outerOut);
+	// tetgenio outerIn;
+	// tetgenio outerOut;
+	// generateBoundingBoxTETGENIO(outerIn, xyzmax, xyzmin, size, outerOut);
 
 	SurfaceMesh tmp;
-	tmp.loadTETGENIO(outerOut);
+	// tmp.loadTETGENIO(outerOut);
+	generateBoundingBoxTETGENIO(xyzmax, xyzmin, size,tmp);
 	int numNodesOutsideShell = tmp.nodes.size();
 
 	shellSurface.addSubSurfaceMesh(tmp);
@@ -136,7 +137,7 @@ void delaunayTetrahedralizationWithHoles(const std::string &fileIn, const std::s
 	// shellIn.holelist[0] = holePos[0];
 	// shellIn.holelist[1] = holePos[1];
 	// shellIn.holelist[2] = holePos[2];
-	char cmdcmd[] = "pqmYQ";
+	char cmdcmd[] = "pq1.1/10mYQ";
 	tetrahedralize(cmdcmd, &shellIn, &shellOut);
 	Mesh shellMesh;
 	shellMesh.loadTETGENIO(shellOut);
@@ -179,20 +180,21 @@ void delaunayTetrahedralization(const std::string &fileIn, const std::string &fi
 	// tetrahedralize(cmd, &innerIn, &innerOut);
 	generateConvaxHullFromPointsIn3D(innerIn, innerMesh, shellSurface);
 	
-	shellSurface.exportVTK("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/atomboundary.vtk");
+	//shellSurface.exportVTK("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/atomboundary.vtk");
 	shellSurface.estimateSizing();
 	int numNodesInsideShell = shellSurface.nodes.size();
 
 
 
-	tetgenio outerIn;
-	tetgenio outerOut;
-	generateBoundingBoxTETGENIO(outerIn, xyzmax, xyzmin, size, outerOut);
+	// tetgenio outerIn;
+	// tetgenio outerOut;
+	// generateBoundingBoxTETGENIO(outerIn, xyzmax, xyzmin, size, outerOut);
 
 	SurfaceMesh tmp;
-	tmp.loadTETGENIO(outerOut);
+	// tmp.loadTETGENIO(outerOut);
+	generateBoundingBoxTETGENIO(xyzmax, xyzmin, size, tmp);
 	int numNodesOutsideShell = tmp.nodes.size();
-	tmp.exportVTK("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/outboundary.vtk");
+	//tmp.exportVTK("/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/refine_pipleline/outboundary.vtk");
 	shellSurface.addSubSurfaceMesh(tmp);
 	tetgenio shellIn;
 	tetgenio shellOut;
@@ -1158,6 +1160,49 @@ void resetPoints(tetgenio &tet, Vector3D pMax, Vector3D pMin, std::vector<int> &
 	tet.pointlist[3*indexOf1[7]+2] = pMin[2];
 
 }
+void generateBoundingBoxTETGENIO(Vector3D xyzmax, Vector3D xyzmin, double size, SurfaceMesh &aSurface){
+	std::vector<std::array<int, 2>> bottomEdges;
+	std::vector<std::array<double, 2>> bottomEdgeNodes;
+
+	SurfaceMesh faceBottom, faceTop, faceFront, faceBack, faceLeft, faceRight;
+	std::vector<std::array<double,2>> holes;
+	generateRectangle({xyzmax[0],xyzmax[1]},{xyzmin[0], xyzmin[1]}, size, bottomEdgeNodes, bottomEdges);
+	triangulateio triTopBottom;
+	generateMeshInPlaneWithEdges(bottomEdgeNodes, bottomEdges, holes, size*size/2, triTopBottom);
+	faceTop.projectTRIANGULATEIO(triTopBottom, PROJECTION_TYPE::XY_PLANE, xyzmax[2]);
+	faceBottom.projectTRIANGULATEIO(triTopBottom, PROJECTION_TYPE::XY_PLANE, xyzmin[2]);
+	deleteTRIANGULATEIOAllocatedArrays(triTopBottom);
+
+	bottomEdgeNodes.clear();
+	bottomEdges.clear();
+	holes.clear();
+	generateRectangle({xyzmax[1], xyzmax[2]}, {xyzmin[1],xyzmin[2]}, size, bottomEdgeNodes, bottomEdges);
+	triangulateio triFrontBack;	
+	generateMeshInPlaneWithEdges(bottomEdgeNodes, bottomEdges, holes, size*size/2, triFrontBack);
+	faceFront.projectTRIANGULATEIO(triFrontBack, PROJECTION_TYPE::YZ_PLANE, xyzmax[0]);
+	faceBack.projectTRIANGULATEIO(triFrontBack, PROJECTION_TYPE::YZ_PLANE, xyzmin[0]);
+	deleteTRIANGULATEIOAllocatedArrays(triFrontBack);
+
+	bottomEdgeNodes.clear();
+	bottomEdges.clear();
+	holes.clear();
+	generateRectangle({xyzmax[2], xyzmax[0]}, {xyzmin[2],xyzmin[0]}, size, bottomEdgeNodes, bottomEdges);
+	triangulateio triLeftRight;	
+	generateMeshInPlaneWithEdges(bottomEdgeNodes, bottomEdges, holes, size*size/2, triLeftRight);
+	faceRight.projectTRIANGULATEIO(triLeftRight, PROJECTION_TYPE::ZX_PLANE, xyzmax[1]);
+	faceLeft.projectTRIANGULATEIO(triLeftRight, PROJECTION_TYPE::ZX_PLANE, xyzmin[1]);
+	deleteTRIANGULATEIOAllocatedArrays(triLeftRight);
+
+	double eps = 0.1*size;
+	aSurface.mergeSurfaceMesh(faceRight,eps);
+	aSurface.mergeSurfaceMesh(faceLeft, eps);
+	aSurface.mergeSurfaceMesh(faceFront, eps);
+	aSurface.mergeSurfaceMesh(faceBack, eps);
+	aSurface.mergeSurfaceMesh(faceTop, eps);	
+	aSurface.mergeSurfaceMesh(faceBottom, eps);
+
+}
+
 
 void parseZHandleV3(SurfaceMesh &zHandleSurface, Vector3D xyzmax, Vector3D xyzmin, Vector3D oxyzmax, Vector3D oxyzmin, double size, Mesh &meshOut){
 
@@ -2350,7 +2395,7 @@ void generateMeshInPlaneWithEdges(std::vector<std::array<double,2>> &planeNodes,
 	}
 
 
-	std::string str = "pq25Qa"+std::to_string(maxAreaSize);
+	std::string str = "pq30Qa"+std::to_string(maxAreaSize);
 	char cmd[256];
 	strcpy(cmd, str.c_str());
 	triangulate(cmd, &triIn, &triOut, nullptr);
