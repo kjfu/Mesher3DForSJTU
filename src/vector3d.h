@@ -1,6 +1,7 @@
 #pragma once
 #include<array>
 #include<cmath>
+#include <vector>
 class Vector3D;
 double distance(const Vector3D &n0, const Vector3D &n1);
 
@@ -172,6 +173,14 @@ public:
         for(int i=0; i<3; i++){
             xyz[i] = vec[i];
         }
+    }
+
+    std::vector<double> toSTDVector(){
+        std::vector<double> rst(3);
+        rst[0] = xyz[0];
+        rst[1] = xyz[1];
+        rst[2] = xyz[2];
+        return rst;
     }
 };
 

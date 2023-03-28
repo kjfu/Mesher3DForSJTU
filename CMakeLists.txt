@@ -9,7 +9,6 @@ set(CMAKE_CXX_STANDARD 14)
 aux_source_directory(./src DIR_SRCS)
 
 
-
 #set(KDTREE_SRC ./src/gridlab/external/kdtree/kdtree.c)
 
 # Add an executable to the project using the specified source files.

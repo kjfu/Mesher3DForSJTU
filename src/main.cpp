@@ -37,7 +37,7 @@ int main(int argc, char *argv[]){
 	double hmin = -1;
 
 	std::string refineFileHeadIn;
-    std::string refineFileHeadOut;
+    std::string refineFileHeadOut = "out3d";
 
 	std::string fileIn;
     std::string fileOut = "out3d.mesh";
@@ -121,13 +121,13 @@ int main(int argc, char *argv[]){
     }
 
 	//TEST
-	// choice = 2;
-	// quiet = true;
+	//  choice = 3;
+	//  quiet = true;
 	// size = 5;
 	// fileIn = "/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/cpcb.mesh";
 	// fileOut = "/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/out3d.mesh";
 	// fileIn = "C:\\Users\\Fu Kejie\\Desktop\\workspace\\Mesher3DForSJTU\\examples\\periodic\\dislocation.mesh";
-	// refineFileHeadIn = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d";
+	// refineFileHeadIn = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/20210430/out3d";
 	// refineFileHeadOut = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/test3d_out";
 	//TEST
     if (choice == -1){

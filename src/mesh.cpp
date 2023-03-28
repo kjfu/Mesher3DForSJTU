@@ -1,5 +1,4 @@
 #include "mesh.h"
-#include "hashFacet.h"
 #include "kdtree.h"
 #include <unordered_map>
 #include <utility>
@@ -10,14 +9,7 @@
 #include "surfaceMesh.h"
 #include <vector>
 #include <queue>
-double SixTimesTetrahedronVolume(Vector3D v0, Vector3D v1, Vector3D v2, Vector3D v3){
-    Vector3D a = v0 - v2;
-    Vector3D b = v1 - v0;
-    Vector3D c = v3 - v0;
-    double rst = c[0]*(a[1]*b[2]-b[1]*a[2]) - c[1]*(a[0]*b[2]-b[0]*a[2]) + c[2]*(a[0]*b[1]-b[0]*a[1]);
-    return rst;
-}
-
+#include <unordered_set>
 
 
 
@@ -39,91 +31,94 @@ void Mesh::rebuildTetrahedronsAdjacency(){
             e->adjacentTetrahedrons[i] = nullptr;
         }
     }
-    HashFacetTable table;
+
+    std::unordered_map<SubTriangle, SubTriangle, SubTriangleHasher, SubTriangleEqual> SubTriangleMap;
     for(auto e: tetrahedrons){
         for(int i=0; i<4; i++){
             if(e->adjacentTetrahedrons[i] == nullptr){
-                TriangleFacet keyTri = e->facet(i);
-                TriangleFacet goalTri;
-                if (table.searchAnother(keyTri, goalTri)){
-                    Tetrahedron *goalTet = goalTri.tet;
+                SubTriangle sub = e->getSubTriangle(i);
+                // TriangleFacet keyTri = e->facet(i);
+                // TriangleFacet goalTri;
+                if (SubTriangleMap.count(sub)){
+                    SubTriangle goalTri = SubTriangleMap[sub];
+                    Tetrahedron *goalTet = goalTri.tetrahedron;
                     e->adjacentTetrahedrons[i] = goalTet;
-                    goalTet->adjacentTetrahedrons[goalTri.localIndex] = e;
-                    table.remove(goalTri);
+                    goalTet->adjacentTetrahedrons[goalTri.iLocal] = e;
+                    SubTriangleMap.erase(sub);
                 }
                 else{
-                    table.insert(keyTri);
+                    SubTriangleMap[sub]=sub;
+                    // table.insert(keyTri);
                 }
             }
         }
     }
 }
 
-void Mesh::extractBorderNodeIndicesWithLabels(std::vector<int> labels, std::set<int> &nodeIndices){
-    HashFacetTable table;
-    auto satisfy=
-    [&labels]
-    (int label){
-        bool rst=false;
-        for(auto i: labels){
-            if (label == i){
-                rst = true;
-                break;
-            }
-        }
-        return rst;
-    };
+// void Mesh::extractBorderNodeIndicesWithLabels(std::vector<int> labels, std::set<int> &nodeIndices){
+//     HashFacetTable table;
+//     auto satisfy=
+//     [&labels]
+//     (int label){
+//         bool rst=false;
+//         for(auto i: labels){
+//             if (label == i){
+//                 rst = true;
+//                 break;
+//             }
+//         }
+//         return rst;
+//     };
 
-    for(auto &e: tetrahedrons){
-        if ( satisfy(e->nodes[0]->label) 
-        && satisfy(e->nodes[1]->label)
-        && satisfy(e->nodes[2]->label)
-        && satisfy(e->nodes[3]->label)){
-            for(int i=0; i<4; i++){
-                TriangleFacet keyTri = e->facet(i);
-                TriangleFacet goalTri;
-                if (table.search(keyTri, goalTri)){
-                    table.remove(goalTri);    
-                }
-                else{
-                    table.insert(keyTri);
-                }    
-            }
-        }
-    }
-    for(auto kv: table.columns){
-        for(auto f: kv.second){
-            for(auto i: f.orderedNodeIndices){
-                nodeIndices.insert(i);
-            }
-        }
-    }
-}
+//     for(auto &e: tetrahedrons){
+//         if ( satisfy(e->nodes[0]->label) 
+//         && satisfy(e->nodes[1]->label)
+//         && satisfy(e->nodes[2]->label)
+//         && satisfy(e->nodes[3]->label)){
+//             for(int i=0; i<4; i++){
+//                 TriangleFacet keyTri = e->facet(i);
+//                 TriangleFacet goalTri;
+//                 if (table.search(keyTri, goalTri)){
+//                     table.remove(goalTri);    
+//                 }
+//                 else{
+//                     table.insert(keyTri);
+//                 }    
+//             }
+//         }
+//     }
+//     for(auto kv: table.columns){
+//         for(auto f: kv.second){
+//             for(auto i: f.orderedNodeIndices){
+//                 nodeIndices.insert(i);
+//             }
+//         }
+//     }
+// }
 
 void Mesh::extractBorderNodes(std::vector<Node *> &sNodes){
     rebuildTetrahedronsAdjacency();
-    HashFacetTable table;
+    // HashFacetTable table;
+    std::unordered_set<SubTriangle, SubTriangleHasher, SubTriangleEqual> subTriangleSet;
     for(auto &e: tetrahedrons){
         for(int i=0; i<4; i++){
             if (e->adjacentTetrahedrons[i] == nullptr){
-                TriangleFacet keyTri = e->facet(i);
-                TriangleFacet goalTri;
-                if (table.search(keyTri, goalTri)){
-                    table.remove(goalTri);    
+                SubTriangle keyTri = e->getSubTriangle(i);
+                // TriangleFacet goalTri;
+                if (subTriangleSet.count(keyTri)){
+                    subTriangleSet.erase(keyTri);    
                 }
                 else{
-                    table.insert(keyTri);
+                    subTriangleSet.insert(keyTri);
                 }
             }
         }
     }
 
     std::set<Node *> nodeSet;
-    for(auto &kv: table.columns){
-        for(auto &f: kv.second){
-            for(auto i: f.orderedNodeIndices){
-                nodeSet.insert(this->nodes[i]);
-            }
+    for(auto f: subTriangleSet){
+        for(auto n: f.forms){
+            nodeSet.insert(n);
         }
     }
     sNodes.insert(sNodes.end(), nodeSet.begin(), nodeSet.end());
@@ -132,16 +127,17 @@ void Mesh::extractBorderNodes(std::vector<Node *> &sNodes){
 
 void Mesh::extractBorder(SurfaceMesh &aSurface){
     std::set<Node *> nodeSet; 
-    HashFacetTable facetTable;
+    // HashFacetTable facetTable;
+    std::unordered_set<SubTriangle, SubTriangleHasher, SubTriangleEqual> subTriangleSet;
     for(auto e: tetrahedrons){
         for(int i=0; i<4; i++){
-            TriangleFacet keyFacet = e->facet(i, true);
-            TriangleFacet goalFacet;
-            if (facetTable.search(keyFacet, goalFacet)){
-                facetTable.remove(goalFacet);
+            SubTriangle keyFacet = e->getSubTriangle(i);
+            // TriangleFacet goalFacet;
+            if (subTriangleSet.count(keyFacet)){
+                subTriangleSet.erase(keyFacet);
             }
             else{
-                facetTable.insert(keyFacet);
+                subTriangleSet.insert(keyFacet);
             }
         }
     }
@@ -162,11 +158,11 @@ void Mesh::extractBorder(SurfaceMesh &aSurface){
 		return rst;
 	};
 
-    for(auto kv:facetTable.columns){
-        for(auto f: kv.second){
-			TriangleElement *tri = new TriangleElement(getNode(f.sNodes[0]), getNode(f.sNodes[1]), getNode(f.sNodes[2]));
-            aSurface.triangles.push_back(tri);
-        }
+    for(auto f:subTriangleSet){
+        // for(auto f: kv.second){
+        TriangleElement *tri = new TriangleElement(getNode(f.forms[0]), getNode(f.forms[1]), getNode(f.forms[2]));
+        aSurface.triangles.push_back(tri);
+        // }
     }
 	for(auto kv: oldNewNodes){
 		aSurface.nodes.push_back(kv.second);
@@ -175,31 +171,29 @@ void Mesh::extractBorder(SurfaceMesh &aSurface){
 	aSurface.rebuildIndices();
 }
 
-void Mesh::extractBorder(std::vector<Node *> &sNodes, std::vector<TriangleFacet> &sFacets){
-    HashFacetTable table;
+void Mesh::extractBorder(std::vector<Node *> &sNodes, std::vector<SubTriangle> &sFacets){
+    // HashFacetTable table;
+    std::unordered_set<SubTriangle, SubTriangleHasher, SubTriangleEqual> subTriangleSet;
     std::set<Node *> nodeSet;
     for(auto &e: tetrahedrons){
         for(int i=0; i<4; i++){
             if (e->adjacentTetrahedrons[i] == nullptr){
-                TriangleFacet keyTri = e->facet(i, true);
-                TriangleFacet goalTri;
-                if (table.search(keyTri, goalTri)){
-                    table.remove(goalTri);    
+                SubTriangle keyTri = e->getSubTriangle(i);
+                if (subTriangleSet.count(keyTri)){
+                    subTriangleSet.erase(keyTri);   
                 }
                 else{
-                    table.insert(keyTri);
+                    subTriangleSet.insert(keyTri);
                 }
             }
         }
     }
 
-    for(auto &kv: table.columns){
-        for(auto f: kv.second){
-            sFacets.push_back(f);
-            for(auto n: f.sNodes){
-                nodeSet.insert(n);
-            }
+    for(auto f: subTriangleSet){
+        for(auto n: f.forms){
+            nodeSet.insert(n);
         }
+    
     }
     sNodes.insert(sNodes.end(), nodeSet.begin(), nodeSet.end());
 }
@@ -500,14 +494,14 @@ void Mesh::readyForSpatialSearch(bool toBuildTetKDTree, bool toBuildNodeKDTree, 
 
 
     if (toBuildTetKDTree){
+        aSearcher.buildAABBTree();
+        // free(tetKDTree);
+        // tetKDTree = kd_create(3);
+        // for(auto e: tetrahedrons){
+        //     e->generateBoundingBox();
+        //     kd_insert(tetKDTree, e->center().data(), static_cast<void*>(e));
 
-        free(tetKDTree);
-        tetKDTree = kd_create(3);
-        for(auto e: tetrahedrons){
-            e->generateBoundingBox();
-            kd_insert(tetKDTree, e->center().data(), static_cast<void*>(e));
-
-        }        
+        // }        
     }
 
 }
@@ -530,19 +524,27 @@ void Mesh::readyForSpatialSearch(bool toBuildTetKDTree, bool toBuildNodeKDTree, 
 // }
 
 bool Mesh::searchTetrahedronContain(Vector3D pos, Tetrahedron* &goalTet){
-    bool rst = false;
-    kdres *set = kd_nearest_range(tetKDTree, pos.data(), maxSizing);
-    while (!kd_res_end(set)){
-        Tetrahedron *tet = static_cast<Tetrahedron *>(kd_res_item_data(set));
-        if (tet->boundingBox.contain(pos, 1e-10) && tet->contain(pos, 1e-10)){
-            goalTet = tet;
-            rst = true;
-            break;
-        }
-        kd_res_next(set);
+    SearchTetrahedronResult res;
+    aSearcher.searchTetrahedronContain(pos, res);
+    if (res.positionType != POSITION_TYPE::OUTSIDE){
+        goalTet=res.tet;
+        return true;
     }
-    kd_res_free(set);
-    return rst;
+
+    return false;
+    // bool rst = false;
+    // kdres *set = kd_nearest_range(tetKDTree, pos.data(), maxSizing);
+    // while (!kd_res_end(set)){
+    //     Tetrahedron *tet = static_cast<Tetrahedron *>(kd_res_item_data(set));
+    //     if (tet->boundingBox.contain(pos, 1e-10) && tet->contain(pos, 1e-10)){
+    //         goalTet = tet;
+    //         rst = true;
+    //         break;
+    //     }
+    //     kd_res_next(set);
+    // }
+    // kd_res_free(set);
+    // return rst;
 
     // bool findGoal = false;
     // auto rtreeCallBack =
@@ -566,20 +568,28 @@ bool Mesh::searchTetrahedronContain(Vector3D pos, Tetrahedron* &goalTet){
 }
 
 bool Mesh::searchTetrahedronContain(Vector3D pos,  Tetrahedron* &goalTet, std::array<double, 4> &weights){
-
-    bool rst = false;
-    kdres *set = kd_nearest_range(tetKDTree, pos.data(), maxSizing);
-    while (!kd_res_end(set)){
-        Tetrahedron *tet = static_cast<Tetrahedron *>(kd_res_item_data(set));
-        if (tet->boundingBox.contain(pos) && tet->contain(pos, weights)){
-            goalTet = tet;
-            rst = true;
-            break;
-        }
-        kd_res_next(set);
+    SearchTetrahedronResult res;
+    aSearcher.searchTetrahedronContain(pos, res);
+    if (res.positionType != POSITION_TYPE::OUTSIDE){
+        goalTet=res.tet;
+        weights=res.weights;
+        return true;
     }
-    kd_res_free(set);
-    return rst;  
+
+    return false;
+    // bool rst = false;
+    // kdres *set = kd_nearest_range(tetKDTree, pos.data(), maxSizing);
+    // while (!kd_res_end(set)){
+    //     Tetrahedron *tet = static_cast<Tetrahedron *>(kd_res_item_data(set));
+    //     if (tet->boundingBox.contain(pos) && tet->contain(pos, weights)){
+    //         goalTet = tet;
+    //         rst = true;
+    //         break;
+    //     }
+    //     kd_res_next(set);
+    // }
+    // kd_res_free(set);
+    // return rst;  
 
     // bool findGoal = false;
     // auto rtreeCallBack =
@@ -660,6 +670,109 @@ void Mesh::getSubRegionCenters(std::vector<Vector3D> &positions){
     }
 }
 
+
+void Mesh::checkBooleanRemoveSpecial(Mesh &anotherMesh, int outerLayers){
+    AABBox anotherBox;
+    for(auto n: anotherMesh.nodes){
+        anotherBox.insert(n->pos);
+        n->edit =0;
+    }
+
+
+    
+    for(auto e: tetrahedrons){
+        e->edit = 0;
+        if(e->label==0){
+            e->edit = -1;
+            continue;
+        }
+        bool maybeIntersect=false;
+        for(auto n: e->nodes){
+            if (n->edit){
+                e->edit =-1;
+                break;
+            }
+            
+            if(anotherBox.contain(n->pos, 1e-10)){
+                Tetrahedron *goalTet;
+                if (anotherMesh.searchTetrahedronContain(n->pos, goalTet)){
+                    e->edit=-1;
+                    n->edit= 1;
+                }
+                else{
+                    maybeIntersect = true;
+                }
+            }
+            if(e->edit==-1) break;
+        }
+
+        if(maybeIntersect && e->edit == 0){
+            e->generateBoundingBox();
+            for(auto ee: anotherMesh.tetrahedrons){
+                if(e->boundingBox.intersects(ee->boundingBox, 1e-8)){
+                    for(int i=0; i<4; i++){
+                        SubTriangle ff = ee->getSubTriangle(i);                    
+                        for(int j=0; j<4; j++){
+                            SubTriangle f = e->getSubTriangle(j);
+                            if(testIntersection(f, ff)){
+                                e->edit=-1;
+                                break;
+                            }
+                        }
+                        if(e->edit==-1){
+                            break;
+                        }
+                    }                    
+                }
+            }
+        }
+    }
+
+    if (outerLayers>0){
+        std::vector<Tetrahedron *> removeTets;
+        for(auto n: nodes){
+            n->edit = 0;
+        }
+
+        for(auto e: tetrahedrons){
+            if(e->edit==-1){
+                removeTets.push_back(e);
+            }
+        }
+        for(auto e: removeTets){
+                for(auto n: e->nodes){
+                    n->edit = -1;
+                }
+        }
+
+        std::vector<Tetrahedron *> freshTets;
+        for(int i=0; i<outerLayers; i++){
+
+            for(auto e:tetrahedrons){
+                if (e->edit == 0){
+                    for(auto n: e->nodes){
+                        if (n->edit == -1){
+                            e->edit = -1;
+                            freshTets.push_back(e);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            for(auto e: freshTets){
+                for(auto n: e->nodes){
+                    n->edit = -1;
+                }
+            }
+
+            if(freshTets.empty()){
+                break;
+            }    
+            freshTets.clear();
+        }
+    }
+}
 void Mesh::checkBooleanRemove(Mesh &anotherMesh, int outerLayers){
 
     AABBox anotherBox;
@@ -685,10 +798,10 @@ void Mesh::checkBooleanRemove(Mesh &anotherMesh, int outerLayers){
             for(auto ee: anotherMesh.tetrahedrons){
                 if(e->boundingBox.intersects(ee->boundingBox, 1e-8)){
                     for(int i=0; i<4; i++){
-                        TriangleFacet ff = ee->facet(i, true);                    
+                        SubTriangle ff = ee->getSubTriangle(i);                    
                         for(int j=0; j<4; j++){
-                            TriangleFacet f = e->facet(j, true);
-                            if(f.testIntersection(ff)){
+                            SubTriangle f = e->getSubTriangle(j);
+                            if(testIntersection(f, ff)){
                                 e->edit=-1;
                                 break;
                             }
@@ -921,7 +1034,7 @@ void Mesh::readyForCavityBasedOP(bool toRebuildAdjacency, bool toReadyForSpatial
 
 void Mesh::CavityBasedInsertNode(Tetrahedron *tet, Node *insertNode){
 
-    std::vector<TriangleFacet> sFacets;
+    std::vector<SubTriangle> sFacets;
     std::vector<Tetrahedron *> rmTets;
     rmTets.push_back(tet);
     for(int i=0; i<rmTets.size(); i++){
@@ -940,7 +1053,7 @@ void Mesh::CavityBasedInsertNode(Tetrahedron *tet, Node *insertNode){
     nodes.push_back(insertNode);
 
     for(auto &f: sFacets){
-        Tetrahedron *insertTet = new Tetrahedron(f.sNodes[0], f.sNodes[1], f.sNodes[2], insertNode);
+        Tetrahedron *insertTet = new Tetrahedron(f.forms[0], f.forms[1], f.forms[2], insertNode);
         insertTet->label = 1;
         insertTet->generateBoundingBox();
         insertTet->generateCircumSphere();
@@ -954,26 +1067,26 @@ void Mesh::CavityBasedInsertNode(Tetrahedron *tet, Node *insertNode){
 
 void extractBorderNodes(std::vector<Tetrahedron *> &tets, std::vector<Node *> &borderNodes){
     std::set<Node *> nodeSet;
-    HashFacetTable facetTable;
+    // HashFacetTable facetTable;
+    std::unordered_set<SubTriangle, SubTriangleHasher, SubTriangleEqual> subTriangleSet;
     for(auto e: tets){
         for(int i=0; i<4; i++){
-            TriangleFacet keyFacet = e->facet(i, true);
-            TriangleFacet goalFacet;
-            if (facetTable.search(keyFacet, goalFacet)){
-                facetTable.remove(goalFacet);
+            SubTriangle keyFacet = e->getSubTriangle(i);
+            // TriangleFacet goalFacet;
+            if (subTriangleSet.count(keyFacet)){
+                subTriangleSet.erase(keyFacet);
             }
             else{
-                facetTable.insert(keyFacet);
+                subTriangleSet.insert(keyFacet);
             }
         }
     }
 
-    for(auto kv:facetTable.columns){
-        for(auto f: kv.second){
-            for(auto n: f.sNodes){
+    for(auto f:subTriangleSet){
+            for(auto n: f.forms){
                 nodeSet.insert(n);
             }
-        }
+        
     }
 
     borderNodes.insert(borderNodes.end(), nodeSet.begin(), nodeSet.end());
@@ -981,52 +1094,53 @@ void extractBorderNodes(std::vector<Tetrahedron *> &tets, std::vector<Node *> &b
     
 }
 
-void extractBorderFacets(std::vector<Tetrahedron *> &tets, std::vector<TriangleFacet> &borderFacets){
-    HashFacetTable facetTable;
+void extractBorderFacets(std::vector<Tetrahedron *> &tets, std::vector<SubTriangle> &borderFacets){
+    // HashFacetTable facetTable;
+    std::unordered_set<SubTriangle, SubTriangleHasher, SubTriangleEqual> subTriangleSet;
     for(auto e: tets){
         for(int i=0; i<4; i++){
-            TriangleFacet keyFacet = e->facet(i, true);
-            TriangleFacet goalFacet;
-            if (facetTable.search(keyFacet, goalFacet)){
-                facetTable.remove(goalFacet);
+            SubTriangle keyFacet = e->getSubTriangle(i);
+            // TriangleFacet goalFacet;
+            if (subTriangleSet.count(keyFacet)){
+                subTriangleSet.erase(keyFacet);
             }
             else{
-                facetTable.insert(keyFacet);
+                subTriangleSet.insert(keyFacet);
             }
         }
     }
 
-    for(auto kv:facetTable.columns){
-        for(auto f: kv.second){
-            borderFacets.push_back(f);
-        }
+    for(auto f:subTriangleSet){
+        borderFacets.push_back(f);
     }    
 }
 
 
-void extratctBorder(std::vector<Tetrahedron *> &tets, std::vector<Node *> &borderNodes, std::vector<TriangleFacet> &borderFacets){
+void extratctBorder(std::vector<Tetrahedron *> &tets, std::vector<Node *> &borderNodes, std::vector<SubTriangle> &borderFacets){
     std::set<Node *> nodeSet; 
-    HashFacetTable facetTable;
+    // HashFacetTable facetTable;
+    std::unordered_set<SubTriangle, SubTriangleHasher, SubTriangleEqual> SubTriangleMap;
     for(auto e: tets){
         for(int i=0; i<4; i++){
-            TriangleFacet keyFacet = e->facet(i, true);
-            TriangleFacet goalFacet;
-            if (facetTable.search(keyFacet, goalFacet)){
-                facetTable.remove(goalFacet);
+            SubTriangle sub =  e->getSubTriangle(i);
+            // TriangleFacet keyFacet = e->facet(i, true);
+            // TriangleFacet goalFacet;
+            if (SubTriangleMap.count(sub)){
+                SubTriangleMap.erase(sub);
             }
             else{
-                facetTable.insert(keyFacet);
+                SubTriangleMap.insert(sub);
             }
         }
     }
 
-    for(auto kv:facetTable.columns){
-        for(auto f: kv.second){
-            borderFacets.push_back(f);
-            for(auto n: f.sNodes){
+    for(auto sub:SubTriangleMap){
+        // for(auto f: kv.second){
+            borderFacets.push_back(sub);
+            for(auto n: sub.forms){
                 nodeSet.insert(n);
             }
-        }
+        // }
     }
     borderNodes.insert(borderNodes.end(), nodeSet.begin(), nodeSet.end());
 }
@@ -1058,7 +1172,7 @@ void transportNodesToTETGENIO(const std::vector<Node *> &sNodes, tetgenio &out){
     }
 }
 
-void transportFacetsToTETGENIO(std::vector<Node *> &sNodes, std::vector<TriangleFacet> &facets, std::vector<Vector3D> &holes, tetgenio &out){
+void transportFacetsToTETGENIO(std::vector<Node *> &sNodes, std::vector<SubTriangle> &facets, std::vector<Vector3D> &holes, tetgenio &out){
     
     std::unordered_map<Node *, int> nodeIndices;
     for(int i=0; i<sNodes.size(); i++){
@@ -1094,9 +1208,9 @@ void transportFacetsToTETGENIO(std::vector<Node *> &sNodes, std::vector<Triangle
         tetgenio::polygon &p = f.polygonlist[0];
         p.numberofvertices = 3;
         p.vertexlist = new int[p.numberofvertices];
-        p.vertexlist[0] = nodeIndices[facets[i].sNodes[0]];
-        p.vertexlist[1] = nodeIndices[facets[i].sNodes[1]];
-        p.vertexlist[2] = nodeIndices[facets[i].sNodes[2]];
+        p.vertexlist[0] = nodeIndices[facets[i].forms[0]];
+        p.vertexlist[1] = nodeIndices[facets[i].forms[1]];
+        p.vertexlist[2] = nodeIndices[facets[i].forms[2]];
     }
 
     out.numberofholes = holes.size();

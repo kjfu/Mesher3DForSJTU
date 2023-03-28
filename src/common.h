@@ -1,3 +1,11 @@
+/*
+ * @Author: Kejie Fu
+ * @Date: 2022-03-26 22:06:24
+ * @LastEditTime: 2023-03-28 16:29:50
+ * @LastEditors: Kejie Fu
+ * @Description: 
+ * @FilePath: /Mesher3DForSJTU/src/common.h
+ */
 #pragma once
 // VTK Element types
 enum VTK_ELEMENT_TYPE {	
@@ -22,3 +30,14 @@ enum VTK_ELEMENT_TYPE {
 	VTK_QUADRATIC_TETRA = 24,
 	VTK_QUADRATIC_HEXAHEDRON = 25,
 };
+
+static const int TetrahedronFacet[4][3] = {{1, 3, 2}, {0, 2, 3}, {0, 3, 1}, {0, 1, 2}};
+
+static const int TetrahedronEdge[6][2] = {{0, 1}, {0, 2}, {0, 3}, {1, 2}, {1, 3}, {2, 3}};
+
+static const int TetrahedronFacetShareEdge[6][2] = {{2, 3}, {1, 3}, {1, 2}, {0, 3}, {0, 2}, {0, 1}};
+
+static const int TetrahedronTwoFacetCommonEdge[4][4]={{-1, 0, 1, 2},
+													{ 0,-1, 3, 4},
+													{ 1, 3,-1, 5},
+													{ 2, 4, 5, -1}}; 

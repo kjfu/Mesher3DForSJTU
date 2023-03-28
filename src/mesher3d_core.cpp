@@ -9,8 +9,8 @@
 #include "mesh.h"
 #include "triangle.h"
 #include "surfaceMesh.h"
-#include "hashFacet.h"
-
+#include "MeshRefiner.h"
+#include <unordered_set>
 
 void generateConvexHull(const std::string &fileIn, const std::string &fileOut){
 	tetgenio in, out;
@@ -639,16 +639,17 @@ void constrainedTetrahedralization(tetgenio *in, tetgenio *out, REAL size, bool 
 
 void extractBorder(std::vector<Tetrahedron *>&tets, SurfaceMesh &aSurface){
     std::set<Node *> nodeSet; 
-    HashFacetTable facetTable;
+    // HashFacetTable facetTable;
+	std::unordered_set<SubTriangle, SubTriangleHasher, SubTriangleEqual> subTriangleSet;
     for(auto e: tets){
         for(int i=0; i<4; i++){
-            TriangleFacet keyFacet = e->facet(i, true);
-            TriangleFacet goalFacet;
-            if (facetTable.search(keyFacet, goalFacet)){
-                facetTable.remove(goalFacet);
+            SubTriangle keyFacet = e->getSubTriangle(i);
+            // TriangleFacet goalFacet;
+            if (subTriangleSet.count(keyFacet)){
+                subTriangleSet.erase(keyFacet);
             }
             else{
-                facetTable.insert(keyFacet);
+                subTriangleSet.insert(keyFacet);
             }
         }
     }
@@ -669,11 +670,11 @@ void extractBorder(std::vector<Tetrahedron *>&tets, SurfaceMesh &aSurface){
 		return rst;
 	};
 
-    for(auto kv:facetTable.columns){
-        for(auto f: kv.second){
-			TriangleElement *tri = new TriangleElement(getNode(f.sNodes[0]), getNode(f.sNodes[1]), getNode(f.sNodes[2]));
-            aSurface.triangles.push_back(tri);
-        }
+    for(auto f: subTriangleSet){
+
+		TriangleElement *tri = new TriangleElement(getNode(f.forms[0]), getNode(f.forms[1]), getNode(f.forms[2]));
+		aSurface.triangles.push_back(tri);
+        
     }
 	for(auto kv: oldNewNodes){
 		aSurface.nodes.push_back(kv.second);
@@ -719,7 +720,7 @@ void refineMeshV3(const std::string &fileInHead, const std::string &fileOutHead,
 	transportVector3dsToTETGENIO(points, tmpIn);
 	Mesh innerMesh;
 	SurfaceMesh surfaceInside;
-	generateConvaxHullFromPointsIn3D(tmpIn, innerMesh, surfaceInside);
+	generateConvaxHullFromPointsIn3DRemoveHoles(tmpIn, innerMesh, surfaceInside);
 
 	innerMesh.readyForSpatialSearch();
 	// goalMesh.readyForSpatialSearch();
@@ -805,13 +806,15 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 	loadREMESH(refine_elements, append_points, fileInHead+".remesh");
 	backgroundMesh.clone(goalMesh);
 	backgroundMesh.loadNodeValues(fileInHead + ".value");
-	std::vector<Vector3D> positions;
-		for(auto nt:refine_elements){
-			Vector3D vec = goalMesh.tetrahedrons[nt-1]->center();
-			positions.push_back(vec);
-		}
+	// std::vector<Vector3D> positions;
+	// 	for(auto nt:refine_elements){
+	// 		Vector3D vec = goalMesh.tetrahedrons[nt-1]->center();
+	// 		positions.push_back(vec);
+	// 	}
+	MeshRefiner aRefiner(&goalMesh);
 	timebegin = clock_t();
-	goalMesh.CavityBasedInsert(positions);
+	//goalMesh.CavityBasedInsert(positions);
+	aRefiner.refine(1,refine_elements, 1, 3);
 	timeend = clock_t();
 	std::cout << "[*************] Insert time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
 	// goalMesh.exportVTK(fileOutHead + ".1.vtk");
@@ -831,13 +834,13 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 	transportVector3dsToTETGENIO(points, tmpIn);
 	Mesh innerMesh;
 	SurfaceMesh surfaceInside;
-	generateConvaxHullFromPointsIn3D(tmpIn, innerMesh, surfaceInside);
+	generateConvaxHullFromPointsIn3DRemoveHoles(tmpIn, innerMesh, surfaceInside);
 
 	innerMesh.readyForSpatialSearch();
 	// goalMesh.readyForSpatialSearch();
 
 	timebegin= clock();
-	goalMesh.checkBooleanRemove(innerMesh, 0);
+	goalMesh.checkBooleanRemoveSpecial(innerMesh, 0);
 
 
 
@@ -863,7 +866,8 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 	for(int i=0; i<goalMesh.nodes.size(); i++){
 		if(goalMesh.nodes[i]->edit==1){
 			delete goalMesh.nodes[i];
-			goalMesh.nodes.erase(goalMesh.nodes.begin()+i);
+			goalMesh.nodes[i] = goalMesh.nodes.back();
+			goalMesh.nodes.pop_back();
 			i--;
 		}
 	}
@@ -871,7 +875,8 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 	for(int i=0; i<goalMesh.tetrahedrons.size(); i++){
 		if(goalMesh.tetrahedrons[i]->edit==-1){
 			delete goalMesh.tetrahedrons[i];
-			goalMesh.tetrahedrons.erase(goalMesh.tetrahedrons.begin()+i);
+			goalMesh.tetrahedrons[i] = goalMesh.tetrahedrons.back();
+			goalMesh.tetrahedrons.pop_back();
 			i--;
 		}
 	}
@@ -917,7 +922,7 @@ void refineMeshV2(const std::string &fileInHead, const std::string &fileOutHead,
 	shellIn.holelist[0] = hole[0];
 	shellIn.holelist[1] = hole[1];
 	shellIn.holelist[2] = hole[2];
-	char cmd[] = "pqmYQ";
+	char cmd[] = "pq1.1/10mYQ";
 	tetrahedralize(cmd, &shellIn, &shellOut);
 	Mesh midMesh;
 	midMesh.loadTETGENIO(shellOut, true);
@@ -973,6 +978,7 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead, b
 		}
 		timebegin = clock_t();
 		goalMesh.CavityBasedInsert(positions);
+		
 		timeend = clock_t();
 		std::cout << "[*************] Insert time: "<< (timeend - timebegin)/ CLOCKS_PER_SEC << "s" <<std::endl;
 		// std::cout << "[*************] After insert, nodes: "<<goalMesh.nodes.size() << "; tets: "<< goalMesh.tetrahedrons.size() << std::endl;		
@@ -1019,7 +1025,7 @@ void refineMesh(const std::string &fileInHead, const std::string &fileOutHead, b
 		tetgenio tmpin;
 		Mesh gradMesh;
 		std::vector<Node *> grad_nodes;
-		std::vector<TriangleFacet> grad_facets; 
+		std::vector<SubTriangle> grad_facets; 
 
 
 		transportNodesToTETGENIO(tmpMesh.nodes, tmpin);
@@ -1698,14 +1704,14 @@ void generateZHandleMeshV3(const std::string &fileIn, const std::string &fileOut
 			}
 			for(int i=0; i<4; i++){
 				if (t->adjacentTetrahedrons[i] && t->adjacentTetrahedrons[i]->label==0){
-					TriangleFacet f =  t->facet(i, true);
-					for(auto v: f.sNodes){
+					SubTriangle f =  t->getSubTriangle(i);
+					for(auto v: f.forms){
 						v->label = 2;
 					}
 				}
 				else if(!t->adjacentTetrahedrons[i]){
-					TriangleFacet f =  t->facet(i, true);
-					for(auto v: f.sNodes){
+					SubTriangle f =  t->getSubTriangle(i);
+					for(auto v: f.forms){
 						if ((v->pos[2]>=(oxyzmax[2]-1e-6) || v->pos[2]<=(oxyzmin[2]+1e-6)) && (v->label==0 || v->label == 3)) v->label = 1;
 					}
 				}
@@ -1714,8 +1720,8 @@ void generateZHandleMeshV3(const std::string &fileIn, const std::string &fileOut
 		else if(t->label==0){
 			for(int i=0; i<4; i++){
 				if(!t->adjacentTetrahedrons[i]){
-					TriangleFacet f =  t->facet(i, true);
-					for(auto v: f.sNodes){
+					SubTriangle f =  t->getSubTriangle(i);
+					for(auto v: f.forms){
 						v->label = 2;
 					}
 				}
@@ -1771,8 +1777,8 @@ void generateZHandleMeshV2(const std::string &fileIn, const std::string &fileOut
 	for(auto t: innerMesh.tetrahedrons){
 		for (int i=0; i<4; i++){
 			if (!t->adjacentTetrahedrons[i]){
-				TriangleFacet f = t->facet(i, true);
-				for(auto n: f.sNodes){
+				SubTriangle f = t->getSubTriangle(i);
+				for(auto n: f.forms){
 					n->label = 2;
 				}
 			}
