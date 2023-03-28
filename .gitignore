@@ -11,3 +11,7 @@ test.cpp
 file/
 examples
 src/bak
+*.vtk
+*.value
+*.mesh
+*.remesh
