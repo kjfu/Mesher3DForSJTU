@@ -11,6 +11,7 @@
 #include "surfaceMesh.h"
 #include "MeshRefiner.h"
 #include <unordered_set>
+#include <fstream>
 
 void generateConvexHull(const std::string &fileIn, const std::string &fileOut){
 	tetgenio in, out;
@@ -2401,7 +2402,7 @@ void generateMeshInPlaneWithEdges(std::vector<std::array<double,2>> &planeNodes,
 	}
 
 
-	std::string str = "pq30Qa"+std::to_string(maxAreaSize);
+	std::string str = "pqYQDa"+std::to_string(maxAreaSize);
 	char cmd[256];
 	strcpy(cmd, str.c_str());
 	triangulate(cmd, &triIn, &triOut, nullptr);
@@ -2437,4 +2438,19 @@ void generateRectangle(std::array<double, 2> maxPos, std::array<double,2> minPos
 		edges.push_back({base+i, base+i+1});
 	}
 	edges.back()[1] = basebase;
+}
+
+
+
+void analysisQuality(const std::string &fileIn, const std::string &fileOut){
+	Mesh mesh;
+	mesh.loadMESH(fileIn);
+	std::ofstream file(fileOut);
+	file << "Quality" << std::endl;
+	for(int i=0; i<mesh.tetrahedrons.size(); i++){
+		Tetrahedron *tet =  mesh.tetrahedrons[i];
+		file << calculateTetrahedronScaleQualityWith4Points_ISO(tet->nodes[0]->pos, tet->nodes[1]->pos, tet->nodes[2]->pos, tet->nodes[3]->pos) << std::endl; 
+	}
+
+
 }

@@ -124,7 +124,9 @@ int main(int argc, char *argv[]){
 	//  choice = 3;
 	//  quiet = true;
 	// size = 5;
-	// fileIn = "/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/cpcb.mesh";
+	// choice = 9;
+	// fileIn = "/home/kjfu/research/Mesher3DForSJTU/examples/quality_test/CPC-disloc/step4.mesh";
+	// fileOut = fileIn + ".csv";
 	// fileOut = "/home/kjfu/research/Mesher3DForSJTU/examples/paper_test/out3d.mesh";
 	// fileIn = "C:\\Users\\Fu Kejie\\Desktop\\workspace\\Mesher3DForSJTU\\examples\\periodic\\dislocation.mesh";
 	// refineFileHeadIn = "/home/kjfu/research/Mesher3DForSJTU/examples/refine_case/20210430/out3d";
@@ -162,6 +164,8 @@ int main(int argc, char *argv[]){
 	else if(choice == 8){
 		generateZHandleMeshV3(fileIn, fileOut, size, quiet);
 	}
-	
+	else if(choice == 9){
+		analysisQuality(fileIn, fileOut);
+	}
     return 0;
 }

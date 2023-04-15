@@ -1,7 +1,7 @@
 /*
  * @Author: Kejie Fu
  * @Date: 2021-09-07 21:09:25
- * @LastEditTime: 2023-03-27 15:14:23
+ * @LastEditTime: 2023-03-31 15:20:40
  * @LastEditors: Kejie Fu
  * @Description: 
  * @FilePath: /Mesher3DForSJTU/src/mesher3d_core.h
@@ -13,6 +13,7 @@
 #include "triangle.h"
 #include "surfaceMesh.h"
 
+void analysisQuality(const std::string &fileIn, const std::string &fileOut);
 
 void generateConvexHull(const std::string &fileIn, const std::string &fileOut);
 void delaunayTetrahedralization(tetgenio *in, tetgenio *out, REAL size, std::vector<int> &tetMarkers, bool beQuiet=false);//useless
